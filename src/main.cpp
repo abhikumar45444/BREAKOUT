@@ -5,16 +5,18 @@
 
 using namespace std;
 
-#define TILESROW 5
+#define TILESROW 10
 #define TILESCOL 10
 
 //! constants
-int WIDTH = 800;
-int HEIGHT = 600;
-const char *TITLE = "BREAKING TILES";
+int WIDTH = 1200;
+int HEIGHT = 700;
+const char *TITLE = "BREAKOUT";
 
 //! variables
 Color backgroundColor = BLACK;
+int newWidth = GetScreenWidth();
+int newHeight = GetScreenHeight();
 
 //! Player lifes
 int livesLeft = 3;
@@ -28,7 +30,7 @@ float paddleWidth = 100.0;
 float paddleHeight = 15.0;
 float paddlePosX = WIDTH / 2 - paddleWidth / 2;
 float paddlePosY = HEIGHT - 50;
-Color paddleColor = PURPLE;
+Color paddleColor = DARKBLUE;
 float paddleSpeed = 300.0f;
 bool isPaddleDirLeft = false;
 bool isPaddleDirRight = false;
@@ -38,16 +40,23 @@ float ballWidth = 20.0;
 float ballHeight = 20.0;
 float ballPosX = 400.0;
 float ballPosY = 700.0;
-Color ballColor = RED;
+Color ballColor = GOLD;
 float ballSpeed = -300.0f;
 float ballSpeedX = ballSpeed;
 float ballSpeedY = ballSpeed;
 int ballGap = 3;
 
 //! Tiles variables
-vector<vector<pair<bool, Vector2>>> tiles(TILESROW);
-int tileWidth = 50;
-int tileHeight = 20;
+struct Tile
+{
+    bool isAlive;
+    Vector2 pos;
+    Color color;
+};
+
+vector<vector<Tile>> tiles(TILESROW);
+int tileWidth = 70;
+int tileHeight = 15;
 
 //!  function declarations
 void ScreenResized();
@@ -62,16 +71,12 @@ void InitializeTiles();
 void DrawTiles();
 void UpdateDrawFrame(void);
 
-    int newWidth = GetScreenWidth();
-    int newHeight = GetScreenHeight();
-
 int main()
 {
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 
     //* Window initialization
     InitWindow(WIDTH, HEIGHT, TITLE);
-
 
     //* set Frames per second
     const int FPS = 60;
@@ -183,12 +188,12 @@ void BallCollisionWithTiles()
     {
         for (int j = 0; j < TILESCOL; j++)
         {
-            if (tiles[i][j].first)
+            if (tiles[i][j].isAlive)
             {
-                Vector2 tilePos = tiles[i][j].second;
+                Vector2 tilePos = tiles[i][j].pos;
                 if ((ballPosX + ballWidth >= tilePos.x && ballPosX <= tilePos.x + tileWidth) && (ballPosY + ballWidth >= tilePos.y && ballPosY <= tilePos.y + tileHeight))
                 {
-                    tiles[i][j].first = false;
+                    tiles[i][j].isAlive = false;
                     ballSpeedY = -ballSpeedY;
                 }
             }
@@ -200,18 +205,34 @@ void InitializeTiles()
 {
     float posX = (WIDTH - ((tileWidth * TILESCOL) + 20.0f * (TILESCOL - 1))) / 2;
     float posY = 50.0f;
+
+    vector<Color> brickRowColor = {
+        {255, 46, 46, 255},
+        {232, 130, 46, 255},
+        {205, 173, 46, 255},
+        {173, 205, 46, 255},
+        {130, 232, 46, 255},
+        {46, 255, 46, 255},
+        {46, 232, 130, 255},
+        {46, 205, 173, 255},
+        {46, 173, 205, 255},
+        {46, 130, 232, 255}
+    };
+
     for (int i = 0; i < TILESROW; i++)
     {
         for (int j = 0; j < TILESCOL; j++)
         {
             Vector2 tilePos = {posX, posY};
             bool tilePresent = true;
-            pair<bool, Vector2> tile = make_pair(tilePresent, tilePos);
+            Tile tile = {tilePresent, tilePos, brickRowColor[i]};
             tiles[i].push_back(tile);
             posX += tileWidth + 20.0f;
         }
+
+        // brickRowColor++;
         posX = (WIDTH - ((tileWidth * TILESCOL) + 20.0f * (TILESCOL - 1))) / 2;
-        posY += tileHeight + 20.0f;
+        posY += tileHeight + 15.0f;
     }
 }
 
@@ -221,18 +242,17 @@ void DrawTiles()
     {
         for (int j = 0; j < TILESCOL; j++)
         {
-            if (tiles[i][j].first)
+            if (tiles[i][j].isAlive)
             {
-                DrawRectangle(tiles[i][j].second.x, tiles[i][j].second.y, tileWidth, tileHeight, BLUE);
+                DrawRectangle(tiles[i][j].pos.x, tiles[i][j].pos.y, tileWidth, tileHeight, tiles[i][j].color);
             }
         }
     }
 }
 
-
 void ScreenResized()
 {
-    if(IsWindowResized())
+    if (IsWindowResized() && GetScreenWidth() >= 700)
     {
         int newWidth = GetScreenWidth();
         int newHeight = GetScreenHeight();
@@ -240,18 +260,32 @@ void ScreenResized()
         paddlePosX = paddlePosX / WIDTH * newWidth;
         paddlePosY = paddlePosY / HEIGHT * newHeight;
 
+        ballPosX = ballPosX / WIDTH * newWidth;
+        ballPosY = ballPosY / HEIGHT * newHeight;
+
+        for (int i = 0; i < TILESROW; i++)
+        {
+            for (int j = 0; j < TILESCOL; j++)
+            {
+                if (tiles[i][j].isAlive)
+                {
+                    tiles[i][j].pos.x = tiles[i][j].pos.x / WIDTH * newWidth;
+                    tiles[i][j].pos.y = tiles[i][j].pos.y / HEIGHT * newHeight;
+                }
+            }
+        }
+
         WIDTH = newWidth;
         HEIGHT = newHeight;
     }
 }
-
 
 void UpdateDrawFrame(void)
 {
     BeginDrawing();
 
     ClearBackground(backgroundColor);
-    DrawRectangleGradientV(0, 0, WIDTH, HEIGHT, GREEN, YELLOW);
+    DrawRectangleGradientV(0, 0, WIDTH, HEIGHT, {50,50,230}, {200, 122, 255, 255});
 
     ScreenResized();
     userInput();

@@ -13,11 +13,13 @@
  Run the [breakout.exe](./build/breakout.exe) file.
 
 ## BUILD: If you want to make changes feel free to do so
-```console 
+***
 Open Makefile
-Make necessary adjustments like Compiler for raylib c++ [raylib github windows setup](https://github.com/raysan5/raylib/wiki/Working-on-Windows).
-You can find raylib library in [library folder](./lib//libraylib.a) or else you need to compile the library by yourself.
-```
+Make necessary adjustments like Compiler for raylib c++ <code>[raylib github windows setup](https://github.com/raysan5/raylib/wiki/Working-on-Windows)</code>.</br>
+You can find raylib library in <code>[library folder](./lib/libraylib.a)</code> or else you need to compile the library by yourself.
+***
+
+
 
 ## DEPENDENCIES
 ```console
