@@ -2,6 +2,7 @@
 #include <iostream>
 #include <vector>
 #include <utility>
+#include <string>
 
 using namespace std;
 
@@ -17,9 +18,19 @@ const char *TITLE = "BREAKOUT";
 Color backgroundColor = BLACK;
 int newWidth = GetScreenWidth();
 int newHeight = GetScreenHeight();
+bool isGameStarted = false;
+bool isGameOver = false;
 
 //! Player lifes
-int livesLeft = 3;
+int livesLeft = 4;
+struct LifeRects
+{
+    Vector2 pos;
+    Color color;
+};
+
+vector<LifeRects> livesrects;
+
 bool ballReset = false;
 float delayTime = 3.0f;
 float elapsedTime = 0.0f;
@@ -28,7 +39,7 @@ float currentTime = 0.0f;
 //! paddle variables
 float paddleWidth = 100.0;
 float paddleHeight = 15.0;
-float paddlePosX = WIDTH / 2 - paddleWidth / 2;
+float paddlePosX = WIDTH * 0.5f - paddleWidth * 0.5f;
 float paddlePosY = HEIGHT - 50;
 Color paddleColor = DARKBLUE;
 float paddleSpeed = 300.0f;
@@ -36,15 +47,15 @@ bool isPaddleDirLeft = false;
 bool isPaddleDirRight = false;
 
 //! ball variables
-float ballWidth = 20.0;
-float ballHeight = 20.0;
-float ballPosX = 400.0;
-float ballPosY = 700.0;
+int ballGap = 3;
+float ballWidth = 18.0;
+float ballHeight = 18.0;
+float ballPosX = paddlePosX + paddleWidth * 0.5f - ballWidth * 0.5f;
+float ballPosY = paddlePosY - paddleHeight * 0.5f - ballHeight * 0.5f - ballGap;
 Color ballColor = GOLD;
 float ballSpeed = -300.0f;
 float ballSpeedX = ballSpeed;
 float ballSpeedY = ballSpeed;
-int ballGap = 3;
 
 //! Tiles variables
 struct Tile
@@ -56,7 +67,11 @@ struct Tile
 
 vector<vector<Tile>> tiles(TILESROW);
 int tileWidth = 70;
-int tileHeight = 15;
+int tileHeight = 12;
+
+//! Game Score
+int score = 0;
+
 
 //!  function declarations
 void ScreenResized();
@@ -70,6 +85,13 @@ void BallCollisionWithTiles();
 void InitializeTiles();
 void DrawTiles();
 void UpdateDrawFrame(void);
+void RenderScore();
+void GameStartScreen();
+void GameOverScreen();
+void GameReset();
+void Lives();
+void InitializeLifeRects();
+void DrawLiveRects();
 
 int main()
 {
@@ -83,6 +105,7 @@ int main()
     SetTargetFPS(FPS);
 
     InitializeTiles();
+    InitializeLifeRects();
 
     //* game loop
     while (!WindowShouldClose())
@@ -121,8 +144,14 @@ void BallReset()
 {
     if (ballReset)
     {
-        ballPosX = paddlePosX + paddleWidth / 2 - ballWidth / 2;
-        ballPosY = paddlePosY - paddleHeight / 2 - ballHeight / 2 - ballGap;
+        ballPosX = paddlePosX + paddleWidth * 0.5f - ballWidth * 0.5f;
+        ballPosY = paddlePosY - paddleHeight * 0.5f - ballHeight * 0.5f - ballGap;
+        
+        if (!isGameStarted)
+        {
+            return;
+        }
+
         currentTime = currentTime + elapsedTime;
         if (currentTime >= delayTime)
         {
@@ -132,6 +161,9 @@ void BallReset()
     }
     else
     {
+        if(!isGameStarted)
+            return;
+        
         BallMovement();
     }
 }
@@ -159,9 +191,17 @@ void BallMovement()
     if (ballPosY + ballHeight > HEIGHT /*paddlePosY + paddleHeight + 50*/)
     {
         livesLeft--;
-        ballReset = true;
-        ballPosX = (paddlePosX + paddleWidth / 2 - ballWidth / 2);
-        ballPosY = (paddlePosY - paddleHeight / 2 - ballHeight / 2) - ballGap;
+        if(livesLeft > 0)
+        {
+            livesrects.pop_back();
+            ballReset = true;
+            ballPosX = (paddlePosX + paddleWidth * 0.5f - ballWidth * 0.5f);
+            ballPosY = (paddlePosY - paddleHeight * 0.5f - ballHeight * 0.5f) - ballGap;
+        }
+        else
+        {
+            isGameOver = true;
+        }
     }
 }
 
@@ -195,6 +235,7 @@ void BallCollisionWithTiles()
                 {
                     tiles[i][j].isAlive = false;
                     ballSpeedY = -ballSpeedY;
+                    score += 100;
                 }
             }
         }
@@ -203,7 +244,7 @@ void BallCollisionWithTiles()
 
 void InitializeTiles()
 {
-    float posX = (WIDTH - ((tileWidth * TILESCOL) + 20.0f * (TILESCOL - 1))) / 2;
+    float posX = (WIDTH - ((tileWidth * TILESCOL) + 15.0f * (TILESCOL - 1))) * 0.5f;
     float posY = 50.0f;
 
     vector<Color> brickRowColor = {
@@ -216,8 +257,7 @@ void InitializeTiles()
         {46, 232, 130, 255},
         {46, 205, 173, 255},
         {46, 173, 205, 255},
-        {46, 130, 232, 255}
-    };
+        {46, 130, 232, 255}};
 
     for (int i = 0; i < TILESROW; i++)
     {
@@ -227,11 +267,10 @@ void InitializeTiles()
             bool tilePresent = true;
             Tile tile = {tilePresent, tilePos, brickRowColor[i]};
             tiles[i].push_back(tile);
-            posX += tileWidth + 20.0f;
+            posX += tileWidth + 15.0f;
         }
 
-        // brickRowColor++;
-        posX = (WIDTH - ((tileWidth * TILESCOL) + 20.0f * (TILESCOL - 1))) / 2;
+        posX = (WIDTH - ((tileWidth * TILESCOL) + 15.0f * (TILESCOL - 1))) * 0.5f;
         posY += tileHeight + 15.0f;
     }
 }
@@ -275,29 +314,153 @@ void ScreenResized()
             }
         }
 
+        for (int i = 0; i < livesrects.size(); i++)
+        {
+            livesrects[i].pos.x = livesrects[i].pos.x / WIDTH * newWidth;
+            livesrects[i].pos.y = livesrects[i].pos.y / HEIGHT * newHeight;
+        }
+
         WIDTH = newWidth;
         HEIGHT = newHeight;
     }
 }
+
+
+void RenderScore()
+{
+    DrawText(TextFormat("Score: %i", score), 10, 10, 20, RED);
+}
+
+
+void GameStartScreen()
+{  
+    DrawRectangle(0, 0, WIDTH, HEIGHT, {220, 220, 220, 230});
+    const char *text = "Press Space Key to Start";
+    int textWidth =  MeasureText(text, 40);
+    DrawText(TextFormat(text), WIDTH * 0.5f-textWidth * 0.5f, HEIGHT * 0.5f, 40, RED);
+}
+
+
+void GameOverScreen()
+{  
+    DrawRectangleGradientV(0, 0, WIDTH, HEIGHT, {50, 50, 230, 50}, {200, 122, 255, 255});
+    const char *gameOverText = "Game Over";
+    int gameOverTextWidth =  MeasureText(gameOverText, 40);
+    DrawText(TextFormat(gameOverText), WIDTH * 0.5f-gameOverTextWidth * 0.5f, HEIGHT * 0.5f - 200, 40, RED);
+    const char *scoreText = "Your Score :";
+    int scoreTextWidth =  MeasureText(scoreText, 40);
+    int scoreWidth = MeasureText(to_string(score).c_str(), 40);
+    DrawText(TextFormat("%s %d", scoreText, score), WIDTH * 0.5f-scoreTextWidth * 0.5f - scoreWidth * 0.5f, HEIGHT * 0.5f - 100, 40, RED);
+    const char *restartText = "Press 'Enter' Key to Restart Game";
+    int restartTextWidth =  MeasureText(restartText, 40);
+    DrawText(TextFormat(restartText), WIDTH * 0.5f-restartTextWidth * 0.5f, HEIGHT * 0.5f, 40, RED);
+}
+
+void GameReset()
+{
+    livesLeft = 4;
+    score = 0;
+
+    ballPosX = paddlePosX + paddleWidth * 0.5f - ballWidth * 0.5f;
+    ballPosY = paddlePosY - paddleHeight * 0.5f - ballHeight * 0.5f - ballGap;
+
+    livesrects.clear();
+
+    for (int i = 0; i < TILESROW; i++)
+    {
+        tiles[i].clear();
+    }
+
+    InitializeLifeRects();
+    InitializeTiles();
+}
+
+void Lives()
+{
+    int fontSize = 20;
+    const char *text = "Lives : ";
+    int textWidth =  MeasureText(text, fontSize);
+    DrawText(TextFormat(text), 20, HEIGHT - 30, fontSize, MAROON);
+    DrawLiveRects();
+}
+
+void InitializeLifeRects()
+{
+    float posX = (250 + ballWidth - ((ballWidth * 3) + 15.0f * (3 - 1))) * 0.5f;
+    float posY = HEIGHT - 30;
+
+    for (int i = 0; i < 3; i++)
+    {
+        Vector2 liveRectPos = {posX, posY};
+        LifeRects liveRect = {liveRectPos, BLACK};
+        livesrects.push_back(liveRect);
+        posX += ballWidth + 15.0f;
+    }
+}
+
+void DrawLiveRects()
+{
+    for (int i = 0; i < livesrects.size(); i++)
+    {
+        DrawRectangle(livesrects[i].pos.x, livesrects[i].pos.y, ballWidth, ballHeight, livesrects[i].color);
+    }
+}
+
 
 void UpdateDrawFrame(void)
 {
     BeginDrawing();
 
     ClearBackground(backgroundColor);
-    DrawRectangleGradientV(0, 0, WIDTH, HEIGHT, {50,50,230}, {200, 122, 255, 255});
 
-    ScreenResized();
-    userInput();
+    if(IsKeyPressed(KEY_SPACE))
+    {
+        isGameStarted = !isGameStarted;
+    }
 
-    BallReset(); //* BallReset() function is calling BallMovement() function
-    BallCollisionWithPaddle();
-    BallCollisionWithTiles();
+    if(isGameOver)
+    {
+        GameOverScreen();
+        if(IsKeyPressed(KEY_ENTER))
+        {
+            isGameOver = false;
+            GameReset();
+        }
+        EndDrawing();
+        return;
+    }
 
-    Ball();
-    Paddle();
-    DrawTiles();
-    DrawFPS(0, 0);
+    if (isGameStarted)
+    {
+        DrawRectangleGradientV(0, 0, WIDTH, HEIGHT, {50, 50, 230, 50}, {200, 122, 255, 255});
+
+        ScreenResized();
+        userInput();
+
+        BallReset(); //* BallReset() function is calling BallMovement() function
+        BallCollisionWithPaddle();
+        BallCollisionWithTiles();
+        RenderScore();
+        Ball();
+        Paddle();
+        DrawTiles();
+        Lives();
+        DrawFPS(WIDTH - 75, HEIGHT - 20);
+    }
+    else
+    {
+        DrawRectangleGradientV(0, 0, WIDTH, HEIGHT, {50, 50, 230}, {200, 122, 255, 255});
+        ScreenResized();
+        BallReset(); //* BallReset() function is calling BallMovement() function
+        RenderScore();
+        Ball();
+        Paddle();
+        DrawTiles();
+        Lives();
+        DrawFPS(WIDTH - 75, HEIGHT - 20);
+        GameStartScreen();
+    }
+
     EndDrawing();
     elapsedTime = GetFrameTime();
 }

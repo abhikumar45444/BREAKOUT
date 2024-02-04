@@ -10,16 +10,14 @@
  The bricks are in color of yellow, green, orange, and red from bottom to top.
 
 ## PLAY (WINDOWS - EXE)
- Run the [breakout.exe](./build/breakout.exe) file.
+ Run the [breakout.exe](./build/) file.
 
 ## BUILD: If you want to make changes feel free to do so
 ***
 Open Makefile
-Make necessary adjustments like Compiler for raylib c++ <code>[raylib github windows setup](https://github.com/raysan5/raylib/wiki/Working-on-Windows)</code>.</br>
-You can find raylib library in <code>[library folder](./lib/libraylib.a)</code> or else you need to compile the library by yourself.
+Make necessary adjustments like Compiler for raylib c++ <pre><code>[raylib github windows setup](https://github.com/raysan5/raylib/wiki/Working-on-Windows)</code></pre>.</br>
+You can find raylib library in <pre><code>[library folder](./lib/)</code></pre> or else you need to compile the library by yourself.
 ***
-
-
 
 ## DEPENDENCIES
 ```console
