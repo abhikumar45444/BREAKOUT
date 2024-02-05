@@ -10,7 +10,7 @@
  The bricks are in color of yellow, green, orange, and red from bottom to top.
 
 ## PLAY GAME ON WEB
-Checkout Game Here: [BREAKOUT]().
+Checkout Game Here: [BREAKOUT](https://abhikumar45444.github.io/BREAKOUT/).
 
 ## PLAY (WINDOWS - EXE)
  Run the [breakout.exe](./build) file.
