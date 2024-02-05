@@ -4,6 +4,10 @@
 #include <utility>
 #include <string>
 
+#if defined(PLATFORM_WEB)
+#include <emscripten/emscripten.h>
+#endif
+
 using namespace std;
 
 #define TILESROW 10
@@ -11,7 +15,7 @@ using namespace std;
 
 //! constants
 int WIDTH = 1200;
-int HEIGHT = 700;
+int HEIGHT = 650;
 const char *TITLE = "BREAKOUT";
 
 //! variables
@@ -95,7 +99,6 @@ void DrawLiveRects();
 
 int main()
 {
-    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 
     //* Window initialization
     InitWindow(WIDTH, HEIGHT, TITLE);
@@ -107,12 +110,18 @@ int main()
     InitializeTiles();
     InitializeLifeRects();
 
+    #if defined(PLATFORM_WEB)
+    InitializeTiles();
+    emscripten_set_main_loop(UpdateDrawFrame, 0, 1);
+    #else
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 
     //* game loop
     while (!WindowShouldClose())
     {
         UpdateDrawFrame();
     }
+    #endif
 
     //* freeing up resources
     CloseWindow();

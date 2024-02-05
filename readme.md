@@ -9,6 +9,9 @@
  If the ball reaches the bottom of the screen it costs one life.
  The bricks are in color of yellow, green, orange, and red from bottom to top.
 
+## PLAY GAME ON WEB
+Checkout Game Here: [BREAKOUT]().
+
 ## PLAY (WINDOWS - EXE)
  Run the [breakout.exe](./build) file.
 
