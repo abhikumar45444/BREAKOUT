@@ -20,6 +20,8 @@ int newWidth = GetScreenWidth();
 int newHeight = GetScreenHeight();
 bool isGameStarted = false;
 bool isGameOver = false;
+bool isGameWon = false;
+int highscore = 0;
 
 //! Player lifes
 int livesLeft = 4;
@@ -42,7 +44,7 @@ float paddleHeight = 15.0;
 float paddlePosX = WIDTH * 0.5f - paddleWidth * 0.5f;
 float paddlePosY = HEIGHT - 50;
 Color paddleColor = DARKBLUE;
-float paddleSpeed = 300.0f;
+float paddleSpeed = 400.0f;
 bool isPaddleDirLeft = false;
 bool isPaddleDirRight = false;
 
@@ -53,7 +55,7 @@ float ballHeight = 18.0;
 float ballPosX = paddlePosX + paddleWidth * 0.5f - ballWidth * 0.5f;
 float ballPosY = paddlePosY - paddleHeight * 0.5f - ballHeight * 0.5f - ballGap;
 Color ballColor = GOLD;
-float ballSpeed = -300.0f;
+float ballSpeed = -250.0f;
 float ballSpeedX = ballSpeed;
 float ballSpeedY = ballSpeed;
 
@@ -63,6 +65,7 @@ struct Tile
     bool isAlive;
     Vector2 pos;
     Color color;
+    int hitsLeft;
 };
 
 vector<vector<Tile>> tiles(TILESROW);
@@ -86,8 +89,11 @@ void InitializeTiles();
 void DrawTiles();
 void UpdateDrawFrame(void);
 void RenderScore();
+void RenderHighScore();
 void GameStartScreen();
 void GameOverScreen();
+void GameWonScreen();
+void IsGameWon();
 void GameReset();
 void Lives();
 void InitializeLifeRects();
@@ -232,11 +238,25 @@ void BallCollisionWithTiles()
             if (tiles[i][j].isAlive)
             {
                 Vector2 tilePos = tiles[i][j].pos;
-                if ((ballPosX + ballWidth >= tilePos.x && ballPosX <= tilePos.x + tileWidth) && (ballPosY + ballWidth >= tilePos.y && ballPosY <= tilePos.y + tileHeight))
+                if ((ballPosX + ballWidth >= tilePos.x 
+                    && ballPosX <= tilePos.x + tileWidth) 
+                    && (ballPosY + ballWidth >= tilePos.y 
+                    && ballPosY <= tilePos.y + tileHeight))
                 {
-                    tiles[i][j].isAlive = false;
+                    if(tiles[i][j].hitsLeft < 2)
+                    {
+                        tiles[i][j].isAlive = false;
+
+                        if(i >= 0 && i <= 2)
+                            score += 300;
+                        else if(i >= 3 && i <= 6)
+                            score += 200;
+                        else
+                            score += 100;
+                    }
                     ballSpeedY = -ballSpeedY;
-                    score += 100;
+                    tiles[i][j].color.a -= 55;
+                    tiles[i][j].hitsLeft--;
                 }
             }
         }
@@ -266,7 +286,20 @@ void InitializeTiles()
         {
             Vector2 tilePos = {posX, posY};
             bool tilePresent = true;
-            Tile tile = {tilePresent, tilePos, brickRowColor[i]};
+            int hits = 0;
+            if(i >= 0 && i <= 2)
+            {
+                hits = 3;
+            }
+            else if(i >= 3 && i <= 6)
+            {
+                hits = 2;
+            }
+            else
+            {
+                hits = 1;
+            }
+            Tile tile = {tilePresent, tilePos, brickRowColor[i], hits};
             tiles[i].push_back(tile);
             posX += tileWidth + 15.0f;
         }
@@ -332,6 +365,13 @@ void RenderScore()
     DrawText(TextFormat("Score: %i", score), 10, 10, 20, RED);
 }
 
+void RenderHighScore()
+{
+    const char *text = "Highscore: ";
+    int textWidth =  MeasureText(text, 20);
+    DrawText(TextFormat("%s%i", text, highscore), WIDTH - textWidth - 60, 10, 20, YELLOW);
+}
+
 
 void GameStartScreen()
 {  
@@ -357,9 +397,49 @@ void GameOverScreen()
     DrawText(TextFormat(restartText), WIDTH * 0.5f-restartTextWidth * 0.5f, HEIGHT * 0.5f, 40, RED);
 }
 
+void GameWonScreen()
+{  
+    DrawRectangleGradientV(0, 0, WIDTH, HEIGHT, {50, 50, 230, 50}, {200, 122, 255, 255});
+    const char *gameOverText = "YOU WIN";
+    int gameOverTextWidth =  MeasureText(gameOverText, 40);
+    DrawText(TextFormat(gameOverText), WIDTH * 0.5f-gameOverTextWidth * 0.5f, HEIGHT * 0.5f - 200, 40, RED);
+    const char *scoreText = "Your Score :";
+    int scoreTextWidth =  MeasureText(scoreText, 40);
+    int scoreWidth = MeasureText(to_string(score).c_str(), 40);
+    DrawText(TextFormat("%s %d", scoreText, score), WIDTH * 0.5f-scoreTextWidth * 0.5f - scoreWidth * 0.5f, HEIGHT * 0.5f - 100, 40, RED);
+    const char *restartText = "Press 'Enter' Key to Restart Game";
+    int restartTextWidth =  MeasureText(restartText, 40);
+    DrawText(TextFormat(restartText), WIDTH * 0.5f-restartTextWidth * 0.5f, HEIGHT * 0.5f, 40, RED);
+}
+
+
+void IsGameWon()
+{
+    for (int i = 0; i < TILESROW; i++)
+    {
+        for (int j = 0; j < TILESCOL; j++)
+        {
+            if (tiles[i][j].isAlive)
+            {
+                isGameWon = false;
+                return;
+            }
+        }
+    }
+
+    isGameWon = true;
+}
+
+
 void GameReset()
 {
     livesLeft = 4;
+
+    if(highscore < score)
+    {
+        highscore = score;
+    }
+
     score = 0;
 
     ballPosX = paddlePosX + paddleWidth * 0.5f - ballWidth * 0.5f;
@@ -374,6 +454,7 @@ void GameReset()
 
     InitializeLifeRects();
     InitializeTiles();
+    isGameStarted = false;
 }
 
 void Lives()
@@ -430,9 +511,23 @@ void UpdateDrawFrame(void)
         return;
     }
 
+    if(isGameWon)
+    {
+        GameWonScreen();
+        if(IsKeyPressed(KEY_ENTER))
+        {
+            isGameWon = false;
+            GameReset();
+        }
+        EndDrawing();
+        return;
+    }
+
     if (isGameStarted)
     {
         DrawRectangleGradientV(0, 0, WIDTH, HEIGHT, {50, 50, 230, 50}, {200, 122, 255, 255});
+
+        IsGameWon();
 
         ScreenResized();
         userInput();
@@ -441,6 +536,7 @@ void UpdateDrawFrame(void)
         BallCollisionWithPaddle();
         BallCollisionWithTiles();
         RenderScore();
+        RenderHighScore();
         Ball();
         Paddle();
         DrawTiles();
@@ -453,6 +549,7 @@ void UpdateDrawFrame(void)
         ScreenResized();
         BallReset(); //* BallReset() function is calling BallMovement() function
         RenderScore();
+        RenderHighScore();
         Ball();
         Paddle();
         DrawTiles();
