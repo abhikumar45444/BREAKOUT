@@ -79,6 +79,11 @@ int tileHeight = 12;
 //! Game Score
 int score = 0;
 
+//! Game Sounds 
+Sound tileHitSound;
+
+//! Game Font
+Font font;
 
 //!  function declarations
 void ScreenResized();
@@ -102,12 +107,23 @@ void GameReset();
 void Lives();
 void InitializeLifeRects();
 void DrawLiveRects();
+Vector4 Vector4Lerp(Vector4 a, Vector4 b, float t);
+Vector4 srgb_to_linear(Vector4 color);
+Vector4 linear_to_srgb(Vector4 color);
 
 int main()
 {
 
     //* Window initialization
     InitWindow(WIDTH, HEIGHT, TITLE);
+
+    //* Initialize Sound
+    InitAudioDevice();
+
+    tileHitSound = LoadSound("../resources/tilebreaker.ogg");
+
+    const char *filename = "../resources/font.ttf";
+    font = LoadFontEx(filename, 50, 0, 250);
 
     //* set Frames per second
     const int FPS = 60;
@@ -116,20 +132,16 @@ int main()
     InitializeTiles();
     InitializeLifeRects();
 
-    #if defined(PLATFORM_WEB)
-    InitializeTiles();
-    emscripten_set_main_loop(UpdateDrawFrame, 0, 1);
-    #else
-    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-
     //* game loop
     while (!WindowShouldClose())
     {
         UpdateDrawFrame();
     }
-    #endif
 
     //* freeing up resources
+    UnloadFont(font);
+    UnloadSound(tileHitSound);
+    CloseAudioDevice();
     CloseWindow();
     return 0;
 }
@@ -263,6 +275,12 @@ void BallCollisionWithTiles()
                         else
                             score += 100;
                     }
+                    
+                    if(!IsSoundPlaying(tileHitSound))
+                    {
+                        PlaySound(tileHitSound);
+                    }
+
                     ballSpeedY = -ballSpeedY;
                     tiles[i][j].color.a -= 55;
                     tiles[i][j].hitsLeft--;
@@ -277,17 +295,29 @@ void InitializeTiles()
     float posX = (WIDTH - ((tileWidth * TILESCOL) + 15.0f * (TILESCOL - 1))) * 0.5f;
     float posY = 50.0f;
 
-    vector<Color> brickRowColor = {
-        {255, 46, 46, 255},
-        {232, 130, 46, 255},
-        {205, 173, 46, 255},
-        {173, 205, 46, 255},
-        {130, 232, 46, 255},
-        {46, 255, 46, 255},
-        {46, 232, 130, 255},
-        {46, 205, 173, 255},
-        {46, 173, 205, 255},
-        {46, 130, 232, 255}};
+    vector<Color> brickRowColor;
+
+    for (int row = 0; row < TILESROW; row++) {
+        Vector4 red = srgb_to_linear(Vector4{1, 0.18f, 0.18f, 1});
+        Vector4 green = srgb_to_linear(Vector4{0.18f, 1, 0.18f, 1});
+        Vector4 blue = srgb_to_linear(Vector4{0.18f, 0.18f, 1, 1});
+        float level = 0.5f;
+        float t = (float)row / TILESROW;
+        float c = (t < level) ? 1.0f : 0.0f;
+        Vector4 g1 = Vector4Lerp(red, green, t / level);
+        Vector4 g2 = Vector4Lerp(green, blue, (t - level) / (1 - level));
+
+        Vector4 colorVec = linear_to_srgb(
+            Vector4{
+                c*g1.x+(1-c)*g2.x,
+                c*g1.y+(1-c)*g2.y,
+                c*g1.z+(1-c)*g2.z,
+                c*g1.w+(1-c)*g2.w
+            }
+        );
+        Color color = ColorFromNormalized(colorVec);
+        brickRowColor.push_back(color);
+    }
 
     for (int i = 0; i < TILESROW; i++)
     {
@@ -371,14 +401,16 @@ void ScreenResized()
 
 void RenderScore()
 {
-    DrawText(TextFormat("Score: %i", score), 10, 10, 20, RED);
+    // DrawText(TextFormat("Score: %i", score), 10, 10, 20, RED);
+    DrawTextEx(font,TextFormat("Score: %i", score),{20, 10}, 25, 0, RED);
 }
 
 void RenderHighScore()
 {
     const char *text = "Highscore: ";
-    int textWidth =  MeasureText(text, 20);
-    DrawText(TextFormat("%s%i", text, highscore), WIDTH - textWidth - 60, 10, 20, YELLOW);
+    int textWidth =  MeasureText(text, 30);
+    // DrawText(TextFormat("%s%i", text, highscore), WIDTH - textWidth - 60, 10, 20, YELLOW);
+    DrawTextEx(font, TextFormat("%s%i", text, highscore), {(float)(WIDTH - textWidth - 90), 10}, 25, 0, YELLOW);
 }
 
 
@@ -387,7 +419,8 @@ void GameStartScreen()
     DrawRectangle(0, 0, WIDTH, HEIGHT, {220, 220, 220, 230});
     const char *text = "Press Space Key to Start";
     int textWidth =  MeasureText(text, 40);
-    DrawText(TextFormat(text), WIDTH * 0.5f-textWidth * 0.5f, HEIGHT * 0.5f, 40, RED);
+    // DrawText(TextFormat(text), WIDTH * 0.5f-textWidth * 0.5f, HEIGHT * 0.5f, 40, RED);
+    DrawTextEx(font, TextFormat(text), {WIDTH * 0.5f-textWidth * 0.5f, HEIGHT * 0.5f}, 40, 0, RED);
 }
 
 
@@ -396,14 +429,17 @@ void GameOverScreen()
     DrawRectangleGradientV(0, 0, WIDTH, HEIGHT, {50, 50, 230, 50}, {200, 122, 255, 255});
     const char *gameOverText = "Game Over";
     int gameOverTextWidth =  MeasureText(gameOverText, 40);
-    DrawText(TextFormat(gameOverText), WIDTH * 0.5f-gameOverTextWidth * 0.5f, HEIGHT * 0.5f - 200, 40, RED);
+    // DrawText(TextFormat(gameOverText), WIDTH * 0.5f-gameOverTextWidth * 0.5f, HEIGHT * 0.5f - 200, 40, RED);
+    DrawTextEx(font, TextFormat(gameOverText), {WIDTH * 0.5f-gameOverTextWidth * 0.5f, HEIGHT * 0.5f - 200}, 40, 0, RED);
     const char *scoreText = "Your Score :";
     int scoreTextWidth =  MeasureText(scoreText, 40);
     int scoreWidth = MeasureText(to_string(score).c_str(), 40);
-    DrawText(TextFormat("%s %d", scoreText, score), WIDTH * 0.5f-scoreTextWidth * 0.5f - scoreWidth * 0.5f, HEIGHT * 0.5f - 100, 40, RED);
+    // DrawText(TextFormat("%s %d", scoreText, score), WIDTH * 0.5f-scoreTextWidth * 0.5f - scoreWidth * 0.5f, HEIGHT * 0.5f - 100, 40, RED);
+    DrawTextEx(font, TextFormat("%s %d", scoreText, score), {WIDTH * 0.5f-scoreTextWidth * 0.5f - scoreWidth * 0.5f, HEIGHT * 0.5f - 100}, 40, 0, RED);
     const char *restartText = "Press 'Enter' Key to Restart Game";
     int restartTextWidth =  MeasureText(restartText, 40);
-    DrawText(TextFormat(restartText), WIDTH * 0.5f-restartTextWidth * 0.5f, HEIGHT * 0.5f, 40, RED);
+    // DrawText(TextFormat(restartText), WIDTH * 0.5f-restartTextWidth * 0.5f, HEIGHT * 0.5f, 40, RED);
+    DrawTextEx(font, TextFormat(restartText), {WIDTH * 0.5f-restartTextWidth * 0.5f, HEIGHT * 0.5f}, 40, 0, RED);
 }
 
 void GameWonScreen()
@@ -411,14 +447,17 @@ void GameWonScreen()
     DrawRectangleGradientV(0, 0, WIDTH, HEIGHT, {50, 50, 230, 50}, {200, 122, 255, 255});
     const char *gameOverText = "YOU WIN";
     int gameOverTextWidth =  MeasureText(gameOverText, 40);
-    DrawText(TextFormat(gameOverText), WIDTH * 0.5f-gameOverTextWidth * 0.5f, HEIGHT * 0.5f - 200, 40, RED);
+    // DrawText(TextFormat(gameOverText), WIDTH * 0.5f-gameOverTextWidth * 0.5f, HEIGHT * 0.5f - 200, 40, RED);
+    DrawTextEx(font, TextFormat(gameOverText), {WIDTH * 0.5f-gameOverTextWidth * 0.5f, HEIGHT * 0.5f - 200}, 40, 0, RED);
     const char *scoreText = "Your Score :";
     int scoreTextWidth =  MeasureText(scoreText, 40);
     int scoreWidth = MeasureText(to_string(score).c_str(), 40);
-    DrawText(TextFormat("%s %d", scoreText, score), WIDTH * 0.5f-scoreTextWidth * 0.5f - scoreWidth * 0.5f, HEIGHT * 0.5f - 100, 40, RED);
+    // DrawText(TextFormat("%s %d", scoreText, score), WIDTH * 0.5f-scoreTextWidth * 0.5f - scoreWidth * 0.5f, HEIGHT * 0.5f - 100, 40, RED);
+    DrawTextEx(font, TextFormat("%s %d", scoreText, score), {WIDTH * 0.5f-scoreTextWidth * 0.5f - scoreWidth * 0.5f, HEIGHT * 0.5f - 100}, 40, 0, RED);
     const char *restartText = "Press 'Enter' Key to Restart Game";
     int restartTextWidth =  MeasureText(restartText, 40);
-    DrawText(TextFormat(restartText), WIDTH * 0.5f-restartTextWidth * 0.5f, HEIGHT * 0.5f, 40, RED);
+    // DrawText(TextFormat(restartText), WIDTH * 0.5f-restartTextWidth * 0.5f, HEIGHT * 0.5f, 40, RED);
+    DrawTextEx(font, TextFormat(restartText), {WIDTH * 0.5f-restartTextWidth * 0.5f, HEIGHT * 0.5f}, 40, 0, RED);
 }
 
 
@@ -468,15 +507,16 @@ void GameReset()
 
 void Lives()
 {
-    int fontSize = 20;
+    int fontSize = 22;
     const char *text = "Lives : ";
-    DrawText(TextFormat(text), 20, HEIGHT - 30, fontSize, MAROON);
+    // DrawText(TextFormat(text), 20, HEIGHT - 30, fontSize, MAROON);
+    DrawTextEx(font, TextFormat(text), {20.0f, HEIGHT - 30.0f}, fontSize, 2.0f, ORANGE);
     DrawLiveRects();
 }
 
 void InitializeLifeRects()
 {
-    float posX = (250 + ballWidth - ((ballWidth * 3) + 15.0f * (3 - 1))) * 0.5f;
+    float posX = (320 + ballWidth - ((ballWidth * 3) + 15.0f * (3 - 1))) * 0.5f;
     float posY = HEIGHT - 30;
 
     for (int i = 0; i < 3; i++)
@@ -494,6 +534,35 @@ void DrawLiveRects()
     {
         DrawRectangle(livesrects[i].pos.x, livesrects[i].pos.y, ballWidth, ballHeight, livesrects[i].color);
     }
+}
+
+
+Vector4 Vector4Lerp(Vector4 a, Vector4 b, float t) {
+    return Vector4{
+        a.x + (b.x - a.x) * t,
+        a.y + (b.y - a.y) * t,
+        a.z + (b.z - a.z) * t,
+        a.w + (b.w - a.w) * t
+    };
+}
+
+
+Vector4 srgb_to_linear(Vector4 color) {
+    return Vector4{
+        (color.x <= 0.04045f) ? (color.x / 12.92f) : pow((color.x + 0.055f) / 1.055f, 2.4f),
+        (color.y <= 0.04045f) ? (color.y / 12.92f) : pow((color.y + 0.055f) / 1.055f, 2.4f),
+        (color.z <= 0.04045f) ? (color.z / 12.92f) : pow((color.z + 0.055f) / 1.055f, 2.4f),
+        color.w
+    };
+}
+
+Vector4 linear_to_srgb(Vector4 color) {
+    return Vector4{
+        (color.x <= 0.0031308f) ? (color.x * 12.92f) : (1.055f * pow(color.x, 1.0f / 2.4f) - 0.055f),
+        (color.y <= 0.0031308f) ? (color.y * 12.92f) : (1.055f * pow(color.y, 1.0f / 2.4f) - 0.055f),
+        (color.z <= 0.0031308f) ? (color.z * 12.92f) : (1.055f * pow(color.z, 1.0f / 2.4f) - 0.055f),
+        color.w
+    };
 }
 
 

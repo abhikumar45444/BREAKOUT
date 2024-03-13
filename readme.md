@@ -35,7 +35,8 @@ winmm
 |---|---|
 |Player|
 |<kbd>←</kbd>/<kbd>→</kbd>|move Paddle LEFT/RIGHT|
+|<kbd>SPACE</kbd>|Pause/Play|
 
-# REFERENCES
-[Collision Detection - Axis Aligned Bounding Box (AABB)](https://medium.com/@hemalatha.psna/collision-detection-in-javascript-efafe8bba2c0)
+## REFERENCES
+[Collision Detection - Axis Aligned Bounding Box (AABB)](https://medium.com/@hemalatha.psna/collision-detection-in-javascript-efafe8bba2c0) </br>
 [Breakout Game Wiki](https://en.wikipedia.org/wiki/Breakout_(video_game))

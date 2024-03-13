@@ -1,11 +1,11 @@
-<!doctypehtml>
+<!doctype html>
 <html lang=EN-us>
 
 <head>
     <meta charset=utf-8>
     <meta content="text/html; charset=utf-8" http-equiv=Content-Type>
-    <title>raylib web game</title>
-    <meta content="raylib web game" name=title>
+    <title>Breakout WebGame</title>
+    <meta content="Breakout Game" name=title>
     <meta content="New raylib web videogame, developed using raylib videogames library" name=description>
     <meta content="raylib, programming, examples, html5, C, C++, library, learn, games, videogames" name=keywords>
     <meta content="width=device-width" name=viewport>
@@ -179,7 +179,8 @@
 <body>
     <div id=header>
         <div class=spinner id=spinner></div>
-        <div class=emscripten id=status>Downloading...</div><span id=controls><span></span><span><input onclick=Module.requestFullscreen(!1,!1) type=button value="🖵 FULLSCREEN"></span><span><input onclick=toggleAudio() type=button value="🔇 MUTE"id=btn-audio></span></span>
+        <div class=emscripten id=status>Downloading...</div><span id=controls><span></span><span><input onclick=Module.requestFullscreen(!1,!1) type=button value="🖵 FULLSCREEN"></span>
+        <span><input type=button value="🔇 MUTE" id=btn-audio class="audio-start-button"></span></span>
         <div
             class=emscripten><progress hidden id=progress max=100 value=0></progress></div>
     </div>
@@ -247,6 +248,7 @@
                 "suspended" == e.state ? (e.resume(), t = !0) : "running" == e.state && e.suspend()
             })), audioBtn.value = t ? "🔇 MUTE" : "🔈 RESUME"
         }
+        document.querySelector('.audio-start-button').addEventListener('click', toggleAudio);
         self.AudioContext = new Proxy(self.AudioContext, {
             construct(t, e) {
                 const n = new t(...e);
