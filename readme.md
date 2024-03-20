@@ -39,4 +39,6 @@ winmm
 
 ## REFERENCES
 [Collision Detection - Axis Aligned Bounding Box (AABB)](https://medium.com/@hemalatha.psna/collision-detection-in-javascript-efafe8bba2c0) </br>
-[Breakout Game Wiki](https://en.wikipedia.org/wiki/Breakout_(video_game))
+[Breakout Game Wiki](https://en.wikipedia.org/wiki/Breakout_(video_game)) </br>
+[sRGB](https://en.wikipedia.org/wiki/SRGB#:~:text=sRGB%20is%20a%20standard%20RGB,%2D2%2D1%3A1999.) </br>
+[sRGB to Linear and vice-versa Conversion Reference](https://github.com/nothings/stb/blob/master/deprecated/stb_image_resize.h)

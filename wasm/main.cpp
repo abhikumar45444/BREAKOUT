@@ -3,6 +3,9 @@
 #include <vector>
 #include <utility>
 #include <string>
+#include <algorithm>
+#include <time.h>
+#include "../include/raymath.h"
 
 #if defined(PLATFORM_WEB)
 #include <emscripten/emscripten.h>
@@ -43,8 +46,8 @@ float elapsedTime = 0.0f;
 float currentTime = 0.0f;
 
 //! paddle variables
-float paddleWidth = 100.0;
-float paddleHeight = 15.0;
+float paddleWidth = 100.0f;
+float paddleHeight = 15.0f;
 float paddlePosX = WIDTH * 0.5f - paddleWidth * 0.5f;
 float paddlePosY = HEIGHT - 50;
 Color paddleColor = DARKBLUE;
@@ -53,15 +56,20 @@ bool isPaddleDirLeft = false;
 bool isPaddleDirRight = false;
 
 //! ball variables
-int ballGap = 3;
-float ballWidth = 18.0;
-float ballHeight = 18.0;
+int ballGap = 3.0f;
+float ballWidth = 18.0f;
+float ballHeight = 18.0f;
 float ballPosX = paddlePosX + paddleWidth * 0.5f - ballWidth * 0.5f;
 float ballPosY = paddlePosY - paddleHeight * 0.5f - ballHeight * 0.5f - ballGap;
 Color ballColor = GOLD;
-float ballSpeed = -250.0f;
+float ballSpeed = -300.0f;
 float ballSpeedX = ballSpeed;
 float ballSpeedY = ballSpeed;
+float isCollidedHorizontally = false;
+float ballcurrentTime = 0.0f;
+float ballelapsedTime = 0.0f;
+float balldelayTime = 0.1f;
+bool resetSpeed = false;
 
 //! Tiles variables
 struct Tile
@@ -73,8 +81,8 @@ struct Tile
 };
 
 vector<vector<Tile>> tiles(TILESROW);
-int tileWidth = 70;
-int tileHeight = 12;
+int tileWidth = 70.0f;
+int tileHeight = 12.0f;
 
 //! Game Score
 int score = 0;
@@ -110,9 +118,14 @@ void DrawLiveRects();
 Vector4 Vector4Lerp(Vector4 a, Vector4 b, float t);
 Vector4 srgb_to_linear(Vector4 color);
 Vector4 linear_to_srgb(Vector4 color);
+bool checkIntersectionX(const Rectangle &rect1, const Rectangle &rect2);
+bool checkIntersectionY(const Rectangle &rect1, const Rectangle &rect2);
+bool checkIntersection(const Rectangle &rect1, const Rectangle &rect2);
+
 
 int main()
 {
+    srand(time(0));
 
     //* Window initialization
     InitWindow(WIDTH, HEIGHT, TITLE);
@@ -148,19 +161,30 @@ int main()
 
 void userInput()
 {
-    if (IsKeyDown(KEY_LEFT) && paddlePosX > 0)
+    if (IsKeyDown(KEY_LEFT))
     {
         paddlePosX -= paddleSpeed * GetFrameTime();
         isPaddleDirLeft = true;
         isPaddleDirRight = false;
     }
+    else
+    {
+        isPaddleDirLeft = false;
+    }
 
-    if (IsKeyDown(KEY_RIGHT) && paddlePosX < WIDTH - paddleWidth)
+    if (IsKeyDown(KEY_RIGHT))
     {
         paddlePosX += paddleSpeed * GetFrameTime();
         isPaddleDirLeft = false;
         isPaddleDirRight = true;
     }
+    else
+    {
+        isPaddleDirRight = false;
+    }
+
+    paddlePosX = Clamp(paddlePosX, 0.0f, paddlePosX+paddleWidth);
+    paddlePosX = Clamp(paddlePosX, paddlePosX-paddleWidth, (float)WIDTH-paddleWidth);
 }
 
 void Paddle()
@@ -203,18 +227,58 @@ void Ball()
 
 void BallMovement()
 {
-    ballPosX += ballSpeedX * GetFrameTime();
-    ballPosY += ballSpeedY * GetFrameTime();
+    if (isCollidedHorizontally)
+    {
+        ballcurrentTime = ballcurrentTime + ballelapsedTime;
+        if ((ballcurrentTime >= balldelayTime))
+        {
+            ballSpeedX = ballSpeedX / 1.75f;
+            ballSpeedY = ballSpeedY / 1.75f;
+            ballcurrentTime = 0.0f;
+            resetSpeed = true;
+        }
+        else if(abs(ballSpeedX) >= 600.0f && ballSpeedX > 0)
+        {
+            ballSpeedX = abs(ballSpeed);
+            ballSpeedY = abs(ballSpeed);
+            ballcurrentTime = 0.0f;
+            resetSpeed = true;
+        }
 
+        else if(abs(ballSpeedX) >= 600.0f && ballSpeedX < 0)
+        {
+            ballSpeedX = ballSpeed;
+            ballSpeedY = abs(ballSpeed);
+            ballcurrentTime = 0.0f;
+            resetSpeed = true;
+        }
+
+        if (resetSpeed)
+        {
+            isCollidedHorizontally = false;
+            resetSpeed = false;
+        }
+    }
+
+    float newballPosX = ballPosX + ballSpeedX * GetFrameTime();
     if (ballPosX < 0 || ballPosX + ballWidth > WIDTH)
     {
+        ballPosX = Clamp(ballPosX, 0.0f, ballPosX + ballWidth);
+        ballPosX = Clamp(ballPosX, ballPosX - ballWidth, (float)WIDTH - ballWidth);
         ballSpeedX = -ballSpeedX;
+        newballPosX = ballPosX + ballSpeedX * GetFrameTime();
     }
+    ballPosX = newballPosX;
 
-    if (ballPosY < 0)
+    float newballPosY = ballPosY + ballSpeedY * GetFrameTime();
+    if (ballPosY < 0 || ballPosY + ballHeight > HEIGHT)
     {
+        ballPosY = Clamp(ballPosY, 0.0f, ballPosY + ballHeight);
+        ballPosY = Clamp(ballPosY, ballPosY - ballHeight, (float)HEIGHT - ballHeight);
         ballSpeedY = -ballSpeedY;
+        newballPosY = ballPosY + ballSpeedY * GetFrameTime();
     }
+    ballPosY = newballPosY;
 
     if (ballPosY + ballHeight > HEIGHT /*paddlePosY + paddleHeight + 50*/)
     {
@@ -233,13 +297,84 @@ void BallMovement()
     }
 }
 
+
+//! Checking rectangles intersections function - collision detection (AABB) - STARTS
+bool checkIntersectionX(const Rectangle& rect1, const Rectangle& rect2) {
+    float left1 = rect1.x;
+    float right1 = rect1.x + rect1.width;
+
+    float left2 = rect2.x;
+    float right2 = rect2.x + rect2.width;
+
+    bool intersectX = !((right1 < left2) || (right2 < left1));
+
+    return intersectX ;
+}
+
+bool checkIntersectionY(const Rectangle& rect1, const Rectangle& rect2) {
+    float top1 = rect1.y;
+    float bottom1 = rect1.y + rect1.height;
+
+    float top2 = rect2.y;
+    float bottom2 = rect2.y + rect2.height;
+
+    bool intersectY = !((bottom1 < top2) || (bottom2 < top1));
+
+    return intersectY;
+}
+
+
+bool checkIntersection(const Rectangle& rect1, const Rectangle& rect2) {
+    float left1 = rect1.x;
+    float right1 = rect1.x + rect1.width;
+    float top1 = rect1.y;
+    float bottom1 = rect1.y + rect1.height;
+
+    float left2 = rect2.x;
+    float right2 = rect2.x + rect2.width;
+    float top2 = rect2.y;
+    float bottom2 = rect2.y + rect2.height;
+
+    // Check for intersection along both axes
+    bool intersectX = !((right1 < left2) || (right2 < left1));
+    bool intersectY = !((bottom1 < top2) || (bottom2 < top1));
+
+    // If both axes have intersection, then there is overall intersection
+    return intersectX && intersectY;
+}
+
+//! Checking rectangles intersections function - collision detection (AABB) - ENDS
+
+
 void BallCollisionWithPaddle()
 {
-    // checking ball collision with paddle
-    if (ballPosX + ballWidth >= paddlePosX &&
-        ballPosX <= paddlePosX + paddleWidth &&
-        ballPosY + ballHeight >= paddlePosY &&
-        ballPosY <= paddlePosY + paddleHeight)
+    Rectangle rect1, rect2;
+    rect1.x = ballPosX;
+    rect1.y = ballPosY;
+    rect1.width = ballWidth;
+    rect1.height = ballHeight;
+
+    rect2.x = paddlePosX;
+    rect2.y = paddlePosY;
+    rect2.width = paddleWidth;
+    rect2.height = paddleHeight;
+
+    float newballPosX = ballPosX + ballSpeedX * GetFrameTime();
+    rect1.x = newballPosX;
+    if(checkIntersection(rect1,rect2) && checkIntersectionX(rect1, rect2) 
+       /* ((ballPosX + ballWidth > paddlePosX) || 
+        (ballPosX < paddlePosX + paddleWidth)) */)
+    {
+        ballSpeedX = -(1.75f * ballSpeedX);
+        ballSpeedY = 1.75f * ballSpeedY;
+        isCollidedHorizontally = true;
+    }
+
+    float newballPosY = ballPosY + ballSpeedY * GetFrameTime();
+    rect1.y = newballPosY;
+    if(checkIntersection(rect1, rect2) && checkIntersectionY(rect1, rect2)
+       /* ((ballPosY + ballHeight > paddlePosY) || 
+        (ballPosY < paddlePosY + paddleHeight)) */)
     {
         if ((isPaddleDirLeft && ballSpeedX > 0) || (isPaddleDirRight && ballSpeedX < 0))
         {
@@ -258,30 +393,60 @@ void BallCollisionWithTiles()
         {
             if (tiles[i][j].isAlive)
             {
+                bool isCollided = false;
                 Vector2 tilePos = tiles[i][j].pos;
-                if ((ballPosX + ballWidth >= tilePos.x 
-                    && ballPosX <= tilePos.x + tileWidth) 
-                    && (ballPosY + ballWidth >= tilePos.y 
-                    && ballPosY <= tilePos.y + tileHeight))
+
+                Rectangle rect1, rect2;
+                rect1.x = ballPosX;
+                rect1.y = ballPosY;
+                rect1.width = ballWidth;
+                rect1.height = ballHeight;
+
+                rect2.x = tilePos.x;
+                rect2.y = tilePos.y;
+                rect2.width = tileWidth;
+                rect2.height = tileHeight;
+
+                float newballPosX = ballPosX + ballSpeedX * GetFrameTime();
+                rect1.x = newballPosX;
+                if (checkIntersection(rect1,rect2) && 
+                ((ballPosX + ballWidth > tilePos.x) || 
+                 (ballPosX < tilePos.x + tileWidth)))
                 {
-                    if(tiles[i][j].hitsLeft < 2)
+                    ballSpeedX = -ballSpeedX;
+                    isCollided = true;
+                }
+
+                float newballPosY = ballPosY + ballSpeedY * GetFrameTime();
+                rect1.y = newballPosY;
+                if (checkIntersection(rect1, rect2) && 
+                ((ballPosY + ballHeight > tilePos.y) || 
+                 (ballPosY < tilePos.y + tileHeight)))
+                {
+                    ballSpeedY = -ballSpeedY;
+                    isCollided = true;
+                }
+
+
+                if (isCollided)
+                {
+                    if (tiles[i][j].hitsLeft < 2)
                     {
                         tiles[i][j].isAlive = false;
 
-                        if(i >= 0 && i <= 2)
+                        if (i >= 0 && i <= 2)
                             score += 300;
-                        else if(i >= 3 && i <= 6)
+                        else if (i >= 3 && i <= 6)
                             score += 200;
                         else
                             score += 100;
                     }
-                    
-                    if(!IsSoundPlaying(tileHitSound))
+
+                    if (!IsSoundPlaying(tileHitSound))
                     {
                         PlaySound(tileHitSound);
                     }
-
-                    ballSpeedY = -ballSpeedY;
+                    
                     tiles[i][j].color.a -= 55;
                     tiles[i][j].hitsLeft--;
                 }
@@ -536,6 +701,7 @@ void DrawLiveRects()
     }
 }
 
+// ! Functions for creating Color lerp to provide smoother transition of colors between tiles - starts 
 
 Vector4 Vector4Lerp(Vector4 a, Vector4 b, float t) {
     return Vector4{
@@ -564,6 +730,8 @@ Vector4 linear_to_srgb(Vector4 color) {
         color.w
     };
 }
+
+// ! Functions for creating Color lerp to provide smoother transition of colors between tiles - ends
 
 
 void UpdateDrawFrame(void)
@@ -638,4 +806,5 @@ void UpdateDrawFrame(void)
 
     EndDrawing();
     elapsedTime = GetFrameTime();
+    ballelapsedTime = GetFrameTime();
 }
