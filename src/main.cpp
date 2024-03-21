@@ -25,6 +25,7 @@ bool isGameStarted = false;
 bool isGameOver = false;
 bool isGameWon = false;
 int highscore = 0;
+bool generateParticles = false;
 
 //! Player lifes
 int livesLeft = 4;
@@ -50,6 +51,9 @@ Color paddleColor = DARKBLUE;
 float paddleSpeed = 400.0f;
 bool isPaddleDirLeft = false;
 bool isPaddleDirRight = false;
+Color paddleColorStart = RED;
+Color paddleColorEnd = BLACK;
+
 
 //! ball variables
 float ballGap = 3.0f;
@@ -65,6 +69,7 @@ float isCollidedHorizontally = false;
 float ballcurrentTime = 0.0f;
 float ballelapsedTime = 0.0f;
 float balldelayTime = 0.1f;
+float speedIncreasedFactor = 1.90f;
 bool resetSpeed = false;
 
 //! Tiles variables
@@ -85,11 +90,45 @@ int score = 0;
 
 //! Game Sounds 
 Sound tileHitSound;
+Sound ballBreakSound;
 
 //! Game Font
 Font font;
 
-//!  function declarations
+//! Particle system
+struct Size
+{
+    int w;
+    int h;
+};
+
+const int minLifetimeValue = 0;
+const int maxLifetimeValue = 1;
+const int minSizeValue = 3;
+const int maxSizeValue = 8;
+const int particleMinAngle = 30;
+const int particleMaxAngle = 150;
+const int particleMinSpeed = 200;
+const int particleMaxSpeed = 550;
+int maxParticles = 50;
+
+struct Particle
+{
+    float lifetime;
+    Vector2 speed;
+    Vector2 pos;
+    Size size;
+    Color color;
+    float angle;
+    bool isAlive;
+    float currentLifeTime;
+};
+
+vector<Particle> particles;
+//! Particle system ends
+
+
+//!  function declarations - starts
 void ScreenResized();
 void userInput();
 void Paddle();
@@ -117,6 +156,15 @@ Vector4 linear_to_srgb(Vector4 color);
 bool checkIntersectionX(const Rectangle &rect1, const Rectangle &rect2);
 bool checkIntersectionY(const Rectangle &rect1, const Rectangle &rect2);
 bool checkIntersection(const Rectangle &rect1, const Rectangle &rect2);
+Color GetLerpedGradientColor(Color start, Color end, float t);
+float randomFloat();
+int randomInt(int a, int b);
+float randomFloat(int a, int b);
+void ParticleInit();
+void DrawParticles();
+void GenerateParticles(Color tileColor, Vector2 tilePos, bool direction);
+void ParticleCollisionWithTiles();
+//!  function declarations - ends
 
 
 int main()
@@ -131,6 +179,7 @@ int main()
     InitAudioDevice();
 
     tileHitSound = LoadSound("../resources/tilebreaker.ogg");
+    ballBreakSound = LoadSound("../resources/ballbreak.ogg");
 
     const char *filename = "../resources/font.ttf";
     font = LoadFontEx(filename, 50, 0, 250);
@@ -141,7 +190,7 @@ int main()
 
     InitializeTiles();
     InitializeLifeRects();
-
+    ParticleInit();
 
     //* game loop
     while (!WindowShouldClose())
@@ -152,6 +201,7 @@ int main()
     //* freeing up resources
     UnloadFont(font);
     UnloadSound(tileHitSound);
+    UnloadSound(ballBreakSound);
     CloseAudioDevice();
     CloseWindow();
     return 0;
@@ -188,6 +238,7 @@ void userInput()
 void Paddle()
 {
     DrawRectangle(paddlePosX, paddlePosY, paddleWidth, paddleHeight, paddleColor);
+    DrawRectangleGradientH(paddlePosX, paddlePosY, paddleWidth, paddleHeight, paddleColorStart, paddleColorEnd);
 }
 
 void BallReset()
@@ -197,6 +248,11 @@ void BallReset()
         ballPosX = paddlePosX + paddleWidth * 0.5f - ballWidth * 0.5f;
         ballPosY = paddlePosY - paddleHeight * 0.5f - ballHeight * 0.5f - ballGap;
         
+        if ((isPaddleDirLeft && ballSpeedX > 0) || (isPaddleDirRight && ballSpeedX < 0))
+        {
+            ballSpeedX = -ballSpeedX;
+        }
+
         if (!isGameStarted)
         {
             return;
@@ -228,14 +284,14 @@ void BallMovement()
     if (isCollidedHorizontally)
     {
         ballcurrentTime = ballcurrentTime + ballelapsedTime;
-        if ((ballcurrentTime >= balldelayTime))
+        if (ballcurrentTime >= balldelayTime)
         {
-            ballSpeedX = ballSpeedX / 1.75f;
-            ballSpeedY = ballSpeedY / 1.75f;
+            ballSpeedX = ballSpeedX / speedIncreasedFactor;
+            ballSpeedY = ballSpeedY / speedIncreasedFactor;
             ballcurrentTime = 0.0f;
             resetSpeed = true;
         }
-        else if(abs(ballSpeedX) >= 600.0f && ballSpeedX > 0)
+        else if(abs(ballSpeedX) >= 500.0f && ballSpeedX > 0)
         {
             ballSpeedX = abs(ballSpeed);
             ballSpeedY = abs(ballSpeed);
@@ -243,7 +299,7 @@ void BallMovement()
             resetSpeed = true;
         }
 
-        else if(abs(ballSpeedX) >= 600.0f && ballSpeedX < 0)
+        else if(abs(ballSpeedX) >= 500.0f && ballSpeedX < 0)
         {
             ballSpeedX = ballSpeed;
             ballSpeedY = abs(ballSpeed);
@@ -257,7 +313,7 @@ void BallMovement()
             resetSpeed = false;
         }
     }
-
+    
     float newballPosX = ballPosX + ballSpeedX * GetFrameTime();
     if (ballPosX < 0 || ballPosX + ballWidth > WIDTH)
     {
@@ -278,15 +334,22 @@ void BallMovement()
     }
     ballPosY = newballPosY;
 
-    if (ballPosY + ballHeight > HEIGHT /*paddlePosY + paddleHeight + 50*/)
+    if (ballPosY + ballHeight >= HEIGHT /*paddlePosY + paddleHeight + 50*/)
     {
         livesLeft--;
+        GenerateParticles(ballColor, {ballPosX, ballPosY}, false);
+        if (!IsSoundPlaying(ballBreakSound))
+        {
+            PlaySound(ballBreakSound);
+        }
+
         if(livesLeft > 0)
         {
             livesrects.pop_back();
             ballReset = true;
             ballPosX = (paddlePosX + paddleWidth * 0.5f - ballWidth * 0.5f);
             ballPosY = (paddlePosY - paddleHeight * 0.5f - ballHeight * 0.5f) - ballGap;
+            ballSpeedX = ballSpeedY = ballSpeed;
         }
         else
         {
@@ -363,9 +426,29 @@ void BallCollisionWithPaddle()
        /* ((ballPosX + ballWidth > paddlePosX) || 
         (ballPosX < paddlePosX + paddleWidth)) */)
     {
-        ballSpeedX = -(1.75f * ballSpeedX);
-        ballSpeedY = 1.75f * ballSpeedY;
+        if((isPaddleDirLeft && ballSpeedX > 0) || (isPaddleDirRight && ballSpeedX < 0))
+        {
+            ballSpeedX = -(speedIncreasedFactor * ballSpeedX);
+        }
+        else if((isPaddleDirLeft && ballSpeedX < 0) || (isPaddleDirRight && ballSpeedX > 0))
+        {
+            ballSpeedX = (speedIncreasedFactor * ballSpeedX);
+        }
+        else
+        {
+            ballSpeedX = -(speedIncreasedFactor * ballSpeedX);
+        }
+        
+        // ballSpeedX = -(speedIncreasedFactor * ballSpeedX);
+        ballSpeedY = speedIncreasedFactor * ballSpeedY;
         isCollidedHorizontally = true;
+        Color particleGradientColor = GetLerpedGradientColor(paddleColorStart, paddleColorEnd, 0.17f);
+        GenerateParticles(particleGradientColor, {paddlePosX, paddlePosY}, true);
+        
+        if (!IsSoundPlaying(tileHitSound))
+        {
+            PlaySound(tileHitSound);
+        }
     }
 
     float newballPosY = ballPosY + ballSpeedY * GetFrameTime();
@@ -380,6 +463,13 @@ void BallCollisionWithPaddle()
         }
 
         ballSpeedY = -ballSpeedY;
+        Color particleGradientColor = GetLerpedGradientColor(paddleColorStart, paddleColorEnd, 0.17f);
+        GenerateParticles(particleGradientColor, {paddlePosX, paddlePosY}, true);
+
+        if (!IsSoundPlaying(tileHitSound))
+        {
+            PlaySound(tileHitSound);
+        }
     }
 }
 
@@ -430,7 +520,13 @@ void BallCollisionWithTiles()
                 {
                     if (tiles[i][j].hitsLeft < 2)
                     {
+                        // direction -> true means downwards and false means upwards... 
+                        bool direction = ballSpeedY > 0 ? false : true;
                         tiles[i][j].isAlive = false;
+                        Color tileColor = tiles[i][j].color;
+                        tileColor.a = 255;
+                        // Generate Particles
+                        GenerateParticles(tileColor, tilePos, direction);
 
                         if (i >= 0 && i <= 2)
                             score += 300;
@@ -508,7 +604,7 @@ void InitializeTiles()
 
         posX = (WIDTH - ((tileWidth * TILESCOL) + 15.0f * (TILESCOL - 1))) * 0.5f;
         posY += tileHeight + 15.0f;
-        }
+    }
 }
 
 void DrawTiles()
@@ -655,8 +751,10 @@ void GameReset()
 
     ballPosX = paddlePosX + paddleWidth * 0.5f - ballWidth * 0.5f;
     ballPosY = paddlePosY - paddleHeight * 0.5f - ballHeight * 0.5f - ballGap;
+    ballSpeedX = ballSpeedY = ballSpeed;
 
     livesrects.clear();
+    particles.clear();
 
     for (int i = 0; i < TILESROW; i++)
     {
@@ -665,7 +763,10 @@ void GameReset()
 
     InitializeLifeRects();
     InitializeTiles();
+    ParticleInit();
     isGameStarted = false;
+    generateParticles = false;
+    ballReset = true;
 }
 
 void Lives()
@@ -699,6 +800,8 @@ void DrawLiveRects()
     }
 }
 
+
+// --------------------------------------------------------------------------------------------------------------
 // ! Functions for creating Color lerp to provide smoother transition of colors between tiles - starts 
 
 Vector4 Vector4Lerp(Vector4 a, Vector4 b, float t) {
@@ -729,8 +832,256 @@ Vector4 linear_to_srgb(Vector4 color) {
     };
 }
 
+Color GetLerpedGradientColor(Color start, Color end, float t)
+{
+    Vector4 ColorStart = ColorNormalize(start);
+    Vector4 ColorEnd = ColorNormalize(end);
+    Vector4 gradientColorVec4 = Vector4Lerp(ColorStart, ColorEnd, t);
+    gradientColorVec4 = srgb_to_linear(gradientColorVec4);
+    Color gradientColor = ColorFromNormalized(gradientColorVec4);
+    return gradientColor;
+}
+
 // ! Functions for creating Color lerp to provide smoother transition of colors between tiles - ends
 
+// --------------------------------------------------------------------------------------------------------------
+
+//! Particle system functions - starts
+float randomFloat()
+{
+    return (float)(rand()) / (float)(RAND_MAX);
+}
+ 
+int randomInt(int a, int b)
+{
+    if (a > b)
+        return randomInt(b, a);
+    if (a == b)
+        return a;
+    return a + (rand() % (b - a));
+}
+ 
+float randomFloat(int a, int b)
+{
+    if (a > b)
+        return randomFloat(b, a);
+    if (a == b)
+        return a;
+ 
+    return (float)randomInt(a, b) + randomFloat();
+}
+
+
+void ParticleInit()
+{
+    int size = maxParticles;
+    for (int i = 0; i < size; i++)
+    {
+        Vector2 pos = {50, 50};
+        Size size = {GetRandomValue(minSizeValue,maxSizeValue), GetRandomValue(minSizeValue,maxSizeValue)};
+        Color color = RED;
+        float lifeTime = randomFloat(minLifetimeValue, maxLifetimeValue);
+        Vector2 speed = {randomFloat(particleMinSpeed, particleMaxSpeed), randomFloat(particleMinSpeed, particleMaxSpeed)};
+        float angle = 0;
+        bool isAlive = false;
+        Particle particle = {
+            lifeTime,
+            speed,
+            pos,
+            size,
+            color,
+            angle,
+            isAlive,
+            0.0f,
+        };
+
+        particles.push_back(particle);
+    }
+
+    particles.reserve(1024);
+}
+
+void DrawParticles()
+{
+    for (int i = 0; i < particles.size(); i++)
+    {
+        if(particles[i].isAlive)
+        {
+            DrawRectangle(particles[i].pos.x, particles[i].pos.y, particles[i].size.w, particles[i].size.h, particles[i].color);
+        }
+    }
+}
+
+void MoveParticles()
+{
+    if(generateParticles)
+    {
+        if(isGameStarted)
+        {
+            for (int i = 0; i < particles.size(); i++)
+            {
+            
+                if(particles[i].isAlive && particles[i].currentLifeTime < particles[i].lifetime /* particles[i].lifetime >= 0 */)
+                {
+                    particles[i].currentLifeTime += GetFrameTime();
+                    float alpha = particles[i].currentLifeTime / particles[i].lifetime;
+                    float easedAlpha = 1.0f - (alpha - 1.0f) * (alpha - 1.0f);
+                    
+                    particles[i].color.a = (unsigned char)(255 * (1.0f - easedAlpha));
+
+                    float newparticlesPosX = particles[i].pos.x + particles[i].speed.x * GetFrameTime() * cosf(particles[i].angle * DEG2RAD);
+                    if (particles[i].pos.x < 0 || particles[i].pos.x + particles[i].size.w > WIDTH)
+                    {
+                        particles[i].speed.x = -particles[i].speed.x;
+                        newparticlesPosX = particles[i].pos.x + particles[i].speed.x * GetFrameTime() * cosf(particles[i].angle * DEG2RAD);
+                    }
+
+                    float newparticlesPosY = particles[i].pos.y + particles[i].speed.y * GetFrameTime() * sinf(particles[i].angle * DEG2RAD);
+                    if (particles[i].pos.y < 0 || particles[i].pos.y + particles[i].size.h > HEIGHT)
+                    {
+                        particles[i].speed.y = -particles[i].speed.y;
+                        newparticlesPosY = particles[i].pos.y + particles[i].speed.y * GetFrameTime() * sinf(particles[i].angle * DEG2RAD);
+                    }
+
+                    particles[i].pos.x = newparticlesPosX;
+                    particles[i].pos.y = newparticlesPosY;
+                }
+                else
+                {
+                    particles.erase(particles.begin() + i);
+                }
+            }
+        }
+
+        DrawParticles();
+    }
+}
+
+
+void GenerateParticles(Color tileColor, Vector2 tilePos, bool direction)
+{
+    generateParticles = true;
+
+    for (int i = 0; i < maxParticles; i++)
+    {
+        Vector2 pos = tilePos;
+        pos.x += 3.0f;
+        pos.y += 3.0f;
+        int particleSide = GetRandomValue(minSizeValue, maxSizeValue);
+        Size size = {particleSide, particleSide};
+        Color color = tileColor;
+        float lifeTime = randomFloat(minLifetimeValue, maxLifetimeValue);
+        float particleSpeed = randomFloat(particleMinSpeed, particleMaxSpeed);
+        Vector2 speed = {randomFloat(particleMinSpeed, particleMaxSpeed), randomFloat(particleMinSpeed, particleMaxSpeed)};
+        float angle;
+        if(direction)
+        {
+            int random = GetRandomValue(1, 4);
+            switch (random)
+            {
+            case 1:
+                angle = randomFloat(particleMinAngle, particleMaxAngle);
+                break;
+            case 2:
+                angle = randomFloat(-particleMinAngle, particleMaxAngle);
+                break;
+            case 3:
+                angle = randomFloat(particleMinAngle, -particleMaxAngle);
+                break;
+            case 4:
+                angle = randomFloat(-particleMinAngle, -particleMaxAngle);
+                break;
+            } 
+        }
+        else
+        {
+            int random = GetRandomValue(1, 4);
+            switch (random)
+            {
+            case 1:
+                angle = randomFloat(particleMinAngle, particleMaxAngle);
+                break;
+            case 2:
+                angle = randomFloat(-particleMinAngle, particleMaxAngle);
+                break;
+            case 3:
+                angle = randomFloat(particleMinAngle, -particleMaxAngle);
+                break;
+            case 4:
+                angle = randomFloat(-particleMinAngle, -particleMaxAngle);
+                break;
+            } 
+        }
+        bool isAlive = true;
+
+        Particle particle = {
+            lifeTime,
+            speed,
+            pos,
+            size,
+            color,
+            angle,
+            isAlive,
+            0.0f
+        };
+
+        particles.push_back(particle);
+    }
+}
+
+
+void ParticleCollisionWithTiles()
+{
+    for (int k = 0; k < particles.size(); k++)
+    {
+        for (int i = 0; i < TILESROW; i++)
+        {
+            for (int j = 0; j < TILESCOL; j++)
+            {
+                if (tiles[i][j].isAlive)
+                {
+                    Vector2 tilePos = tiles[i][j].pos;
+
+                    Rectangle rect1, rect2;
+                    rect1.x = particles[k].pos.x;
+                    rect1.y = particles[k].pos.y;
+                    rect1.width = particles[k].size.w;
+                    rect1.height = particles[k].size.h;
+
+                    rect2.x = tilePos.x;
+                    rect2.y = tilePos.y;
+                    rect2.width = tileWidth;
+                    rect2.height = tileHeight;
+
+                    float newparticlesPosX = particles[k].pos.x + particles[k].speed.x * GetFrameTime() * cosf(particles[k].angle * DEG2RAD);
+                    rect1.x = newparticlesPosX;
+                    if(checkIntersection(rect1,rect2) &&
+                    ((particles[k].pos.x + particles[k].size.w > tilePos.x) ||
+                    (particles[k].pos.x < tilePos.x + tileWidth)))
+                    {
+                        particles[k].speed.x = -particles[k].speed.x;
+                    }
+
+
+                    float newparticlesPosY = particles[k].pos.y + particles[k].speed.y * GetFrameTime() * sinf(particles[k].angle * DEG2RAD);
+                    rect1.y = newparticlesPosY;
+                    if(checkIntersection(rect1,rect2) &&
+                    ((particles[k].pos.y + particles[k].size.h > tilePos.y) ||
+                    (particles[k].pos.y < tilePos.y + tileHeight)))
+                    {
+                        particles[k].speed.y = -particles[k].speed.y;
+                    }
+                }
+            }
+        }
+    }
+}
+
+//! Particle system functions - ends
+
+// --------------------------------------------------------------------------------------------------------------
+
+//! Game main loop - starts 
 
 void UpdateDrawFrame(void)
 {
@@ -783,7 +1134,9 @@ void UpdateDrawFrame(void)
         RenderHighScore();
         Ball();
         Paddle();
+        MoveParticles();
         DrawTiles();
+        DrawParticles();
         Lives();
         DrawFPS(WIDTH - 75, HEIGHT - 20);
     }
@@ -796,7 +1149,9 @@ void UpdateDrawFrame(void)
         RenderHighScore();
         Ball();
         Paddle();
+        MoveParticles();
         DrawTiles();
+        DrawParticles();
         Lives();
         DrawFPS(WIDTH - 75, HEIGHT - 20);
         GameStartScreen();
@@ -806,3 +1161,5 @@ void UpdateDrawFrame(void)
     elapsedTime = GetFrameTime();
     ballelapsedTime = GetFrameTime();
 }
+
+//! Game main loop - ends
