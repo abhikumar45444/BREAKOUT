@@ -93,8 +93,10 @@ int tileHeight = 12.0f;
 int score = 0;
 
 //! Game Sounds 
+Sound tileBreakSound;
 Sound tileHitSound;
 Sound ballBreakSound;
+Sound paddleHitSound;
 
 //! Game Font
 Font font;
@@ -113,7 +115,7 @@ const int maxSizeValue = 8;
 const int particleMinAngle = 30;
 const int particleMaxAngle = 150;
 const int particleMinSpeed = 200;
-const int particleMaxSpeed = 550;
+const int particleMaxSpeed = 650;
 int maxParticles = 50;
 
 struct Particle
@@ -181,8 +183,15 @@ int main()
     //* Initialize Sound
     InitAudioDevice();
 
-    tileHitSound = LoadSound("../resources/tilebreaker.ogg");
+    tileBreakSound = LoadSound("../resources/tilebreak.ogg");
+    tileHitSound = LoadSound("../resources/tilehit.ogg");
     ballBreakSound = LoadSound("../resources/ballbreak.ogg");
+    paddleHitSound = LoadSound("../resources/paddlehit.ogg");
+
+    SetSoundVolume(tileBreakSound, 0.5f);
+    SetSoundVolume(tileHitSound, 0.5f);
+    SetSoundVolume(ballBreakSound, 0.5f);
+    SetSoundVolume(paddleHitSound, 0.7f);
 
     const char *filename = "../resources/font.ttf";
     font = LoadFontEx(filename, 50, 0, 250);
@@ -205,6 +214,8 @@ int main()
     UnloadFont(font);
     UnloadSound(tileHitSound);
     UnloadSound(ballBreakSound);
+    UnloadSound(tileBreakSound);
+    UnloadSound(paddleHitSound);
     CloseAudioDevice();
     CloseWindow();
     return 0;
@@ -448,9 +459,9 @@ void BallCollisionWithPaddle()
         Color particleGradientColor = GetLerpedGradientColor(paddleColorStart, paddleColorEnd, 0.17f);
         GenerateParticles(particleGradientColor, {paddlePosX, paddlePosY}, true);
         
-        if (!IsSoundPlaying(tileHitSound))
+        if (!IsSoundPlaying(paddleHitSound))
         {
-            PlaySound(tileHitSound);
+            PlaySound(paddleHitSound);
         }
     }
 
@@ -469,9 +480,9 @@ void BallCollisionWithPaddle()
         Color particleGradientColor = GetLerpedGradientColor(paddleColorStart, paddleColorEnd, 0.17f);
         GenerateParticles(particleGradientColor, {paddlePosX, paddlePosY}, true);
 
-        if (!IsSoundPlaying(tileHitSound))
+        if (!IsSoundPlaying(paddleHitSound))
         {
-            PlaySound(tileHitSound);
+            PlaySound(paddleHitSound);
         }
     }
 }
@@ -528,6 +539,10 @@ void BallCollisionWithTiles()
                         tiles[i][j].isAlive = false;
                         Color tileColor = tiles[i][j].color;
                         tileColor.a = 255;
+                        if (!IsSoundPlaying(tileBreakSound))
+                        {
+                            PlaySound(tileBreakSound);
+                        }
                         // Generate Particles
                         GenerateParticles(tileColor, tilePos, direction);
 
@@ -538,10 +553,12 @@ void BallCollisionWithTiles()
                         else
                             score += 100;
                     }
-
-                    if (!IsSoundPlaying(tileHitSound))
+                    else
                     {
-                        PlaySound(tileHitSound);
+                        if (!IsSoundPlaying(tileHitSound))
+                        {
+                            PlaySound(tileHitSound);
+                        }
                     }
                     
                     tiles[i][j].color.a -= 55;
@@ -1133,6 +1150,7 @@ void UpdateDrawFrame(void)
         BallReset(); //* BallReset() function is calling BallMovement() function
         BallCollisionWithPaddle();
         BallCollisionWithTiles();
+        ParticleCollisionWithTiles();
         RenderScore();
         RenderHighScore();
         Ball();
