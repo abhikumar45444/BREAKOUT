@@ -7,6 +7,7 @@
 #include <time.h>
 #include "../include/raymath.h"
 
+
 #if defined(PLATFORM_WEB)
 #include <emscripten/emscripten.h>
 #endif
@@ -55,9 +56,10 @@ Color paddleColor = DARKBLUE;
 float paddleSpeed = 400.0f;
 bool isPaddleDirLeft = false;
 bool isPaddleDirRight = false;
-Color paddleColorStart = RED;
-Color paddleColorEnd = BLACK;
-
+Color paddleColorFirst = { 255, 20, 30, 255 };
+Color paddleColorSecond = BLACK;
+Color paddleColorThird = { 255, 20, 30, 255 };
+Color paddleColorFourth = { 180, 180, 180, 255 };
 
 //! ball variables
 int ballGap = 3.0f;
@@ -109,13 +111,13 @@ struct Size
 };
 
 const int minLifetimeValue = 0;
-const int maxLifetimeValue = 1;
+const int maxLifetimeValue = 2;
 const int minSizeValue = 3;
-const int maxSizeValue = 8;
-const int particleMinAngle = 30;
+const int maxSizeValue = 9;
+const int particleMinAngle = 40;
 const int particleMaxAngle = 150;
-const int particleMinSpeed = 200;
-const int particleMaxSpeed = 650;
+const int particleMinSpeed = 100;
+const int particleMaxSpeed = 250;
 int maxParticles = 50;
 
 struct Particle
@@ -132,6 +134,15 @@ struct Particle
 
 vector<Particle> particles;
 //! Particle system ends
+
+
+//! Animation State - starts
+
+bool gameStartScreenAnimation = true;
+bool gameStartScreenAnimationText = true;
+bool gameStartedFirstTime = true;
+
+//! Animation State - ends
 
 
 //!  function declarations - starts
@@ -168,8 +179,10 @@ int randomInt(int a, int b);
 float randomFloat(int a, int b);
 void ParticleInit();
 void DrawParticles();
+void MoveParticles();
 void GenerateParticles(Color tileColor, Vector2 tilePos, bool direction);
 void ParticleCollisionWithTiles();
+bool Animation(float &startingValue, const float &endingValue, float &progress, const float &timeToDecrease, bool &animating, Color &animColor, string animType);
 //!  function declarations - ends
 
 
@@ -196,19 +209,28 @@ int main()
     const char *filename = "../resources/font.ttf";
     font = LoadFontEx(filename, 50, 0, 250);
 
-    //* set Frames per second
-    const int FPS = 60;
-    SetTargetFPS(FPS);
+    #if defined(PLATFORM_WEB)
+        const int FPS = 60;
+        SetTargetFPS(FPS);
+        InitializeTiles();
+        InitializeLifeRects();
+        ParticleInit();
+        emscripten_set_main_loop(UpdateDrawFrame, 0, 1);
+    #else
+        //* set Frames per second
+        const int FPS = 60;
+        SetTargetFPS(FPS);
 
-    InitializeTiles();
-    InitializeLifeRects();
-    ParticleInit();
+        InitializeTiles();
+        InitializeLifeRects();
+        ParticleInit();
 
-    //* game loop
-    while (!WindowShouldClose())
-    {
-        UpdateDrawFrame();
-    }
+        //* game loop
+        while (!WindowShouldClose())
+        {
+            UpdateDrawFrame();
+        }
+    #endif
 
     //* freeing up resources
     UnloadFont(font);
@@ -252,7 +274,7 @@ void userInput()
 void Paddle()
 {
     DrawRectangle(paddlePosX, paddlePosY, paddleWidth, paddleHeight, paddleColor);
-    DrawRectangleGradientH(paddlePosX, paddlePosY, paddleWidth, paddleHeight, paddleColorStart, paddleColorEnd);
+    DrawRectangleGradientEx({paddlePosX, paddlePosY, paddleWidth, paddleHeight}, paddleColorFirst, paddleColorSecond, paddleColorThird, paddleColorFourth);
 }
 
 void BallReset()
@@ -456,7 +478,7 @@ void BallCollisionWithPaddle()
         // ballSpeedX = -(speedIncreasedFactor * ballSpeedX);
         ballSpeedY = speedIncreasedFactor * ballSpeedY;
         isCollidedHorizontally = true;
-        Color particleGradientColor = GetLerpedGradientColor(paddleColorStart, paddleColorEnd, 0.17f);
+        Color particleGradientColor = GetLerpedGradientColor(paddleColorFirst, paddleColorSecond, 0.12f);
         GenerateParticles(particleGradientColor, {paddlePosX, paddlePosY}, true);
         
         if (!IsSoundPlaying(paddleHitSound))
@@ -477,7 +499,7 @@ void BallCollisionWithPaddle()
         }
 
         ballSpeedY = -ballSpeedY;
-        Color particleGradientColor = GetLerpedGradientColor(paddleColorStart, paddleColorEnd, 0.17f);
+        Color particleGradientColor = GetLerpedGradientColor(paddleColorFirst, paddleColorSecond, 0.12f);
         GenerateParticles(particleGradientColor, {paddlePosX, paddlePosY}, true);
 
         if (!IsSoundPlaying(paddleHitSound))
@@ -493,9 +515,10 @@ void BallCollisionWithTiles()
     {
         for (int j = 0; j < TILESCOL; j++)
         {
+            bool isCollided = false;
+
             if (tiles[i][j].isAlive)
             {
-                bool isCollided = false;
                 Vector2 tilePos = tiles[i][j].pos;
 
                 Rectangle rect1, rect2;
@@ -528,8 +551,7 @@ void BallCollisionWithTiles()
                     ballSpeedY = -ballSpeedY;
                     isCollided = true;
                 }
-
-
+                
                 if (isCollided)
                 {
                     if (tiles[i][j].hitsLeft < 2)
@@ -560,9 +582,14 @@ void BallCollisionWithTiles()
                             PlaySound(tileHitSound);
                         }
                     }
-                    
+    
                     tiles[i][j].color.a -= 55;
                     tiles[i][j].hitsLeft--;
+                }
+
+                if(isCollided)
+                {
+                    return;
                 }
             }
         }
@@ -571,7 +598,7 @@ void BallCollisionWithTiles()
 
 void InitializeTiles()
 {
-    float posX = (WIDTH - ((tileWidth * TILESCOL) + 15.0f * (TILESCOL - 1))) * 0.5f;
+    float posX = (WIDTH - ((tileWidth * TILESCOL) + 30.0f * (TILESCOL - 1))) * 0.5f;
     float posY = 50.0f;
 
     vector<Color> brickRowColor;
@@ -605,11 +632,11 @@ void InitializeTiles()
             Vector2 tilePos = {posX, posY};
             bool tilePresent = true;
             int hits = 0;
-            if(i >= 0 && i <= 2)
+            if (i >= 0 && i <= 2)
             {
                 hits = 3;
             }
-            else if(i >= 3 && i <= 6)
+            else if (i >= 3 && i <= 6)
             {
                 hits = 2;
             }
@@ -619,10 +646,10 @@ void InitializeTiles()
             }
             Tile tile = {tilePresent, tilePos, brickRowColor[i], hits};
             tiles[i].push_back(tile);
-            posX += tileWidth + 15.0f;
+            posX += tileWidth + 30.0f;
         }
 
-        posX = (WIDTH - ((tileWidth * TILESCOL) + 15.0f * (TILESCOL - 1))) * 0.5f;
+        posX = (WIDTH - ((tileWidth * TILESCOL) + 30.0f * (TILESCOL - 1))) * 0.5f;
         posY += tileHeight + 15.0f;
     }
 }
@@ -694,12 +721,42 @@ void RenderHighScore()
 
 
 void GameStartScreen()
-{  
-    DrawRectangle(0, 0, WIDTH, HEIGHT, {220, 220, 220, 230});
-    const char *text = "Press Space Key to Start";
-    int textWidth =  MeasureText(text, 40);
-    // DrawText(TextFormat(text), WIDTH * 0.5f-textWidth * 0.5f, HEIGHT * 0.5f, 40, RED);
-    DrawTextEx(font, TextFormat(text), {WIDTH * 0.5f-textWidth * 0.5f, HEIGHT * 0.5f}, 40, 0, RED);
+{
+    static Color animColor = {220, 220, 220, 255};
+    static float startingValue = animColor.a;
+    static float endingValue = 220.0f;
+    // static float currentValue = startingValue;
+    static float timeToDecrease = 3.0f;
+    static float progress = 0.0f;
+
+    static Color textColor = {230, 41, 55, 0};
+
+    static float textstartingValue = textColor.a;
+    static float textendingValue = 255.0f;
+    // static float textcurrentValue = startingValue;
+    static float texttimeToDecrease = 2.0f;
+    static float textprogress = 0.0f;
+    
+    if(gameStartScreenAnimation && Animation(startingValue, endingValue, progress, timeToDecrease, gameStartScreenAnimation, animColor, "gamestart"))
+    {
+        DrawRectangle(0, 0, WIDTH, HEIGHT, animColor);
+    }
+    else
+    {
+        DrawRectangle(0, 0, WIDTH, HEIGHT, animColor);
+        string textStr = "Press Space Key to Start";
+        static const char *text = textStr.c_str();
+        static int textWidth =  MeasureText(text, 40);
+        // DrawText(TextFormat(text), WIDTH * 0.5f-textWidth * 0.5f, HEIGHT * 0.5f, 40, RED);
+        if(gameStartScreenAnimationText && Animation(textstartingValue, textendingValue, textprogress, texttimeToDecrease, gameStartScreenAnimationText, textColor, "text"))
+        {
+            DrawTextEx(font, TextFormat(text), {WIDTH * 0.5f-textWidth * 0.5f, HEIGHT * 0.5f}, 40, 0, textColor);
+        }
+        else
+        {
+            DrawTextEx(font, TextFormat(text), {WIDTH * 0.5f-textWidth * 0.5f, HEIGHT * 0.5f}, 40, 0, textColor);
+        }
+    }
 }
 
 
@@ -787,6 +844,8 @@ void GameReset()
     isGameStarted = false;
     generateParticles = false;
     ballReset = true;
+    gameStartScreenAnimation = true;
+    gameStartScreenAnimationText = true;
 }
 
 void Lives()
@@ -1101,6 +1160,50 @@ void ParticleCollisionWithTiles()
 
 // --------------------------------------------------------------------------------------------------------------
 
+//! Animation system functions - starts
+
+bool Animation(float &startingValue,const  float &endingValue, float &progress, const float &timeToDecrease, bool &animating, Color &animColor, string animType)
+{
+    if(animType == "gamestart")
+    {
+        progress += GetFrameTime() / timeToDecrease;
+        progress = Clamp(progress, 0.0f, 1.0f);
+        float currentValue = Lerp(startingValue, endingValue, progress);
+        animColor.a = (unsigned char)(currentValue);
+        if (progress >= 1.0f)
+        {
+            progress = 0.0f;
+            currentValue = endingValue;
+            animating = false;
+            return false;
+        }
+
+        return true;
+    }
+    else if(animType == "text")
+    {
+        progress += GetFrameTime() / timeToDecrease;
+        progress = Clamp(progress, 0.0f, 1.0f);
+        float currentValue = Lerp(startingValue, endingValue, progress);
+        animColor.a = (unsigned char)(currentValue);
+        if (progress >= 1.0f)
+        {
+            progress = 0.0f;
+            currentValue = endingValue;
+            animating = false;
+            return false;
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
+//! Animation system functions - ends
+
+// --------------------------------------------------------------------------------------------------------------
+
 //! Game main loop - starts
 
 void UpdateDrawFrame(void)
@@ -1109,9 +1212,20 @@ void UpdateDrawFrame(void)
 
     ClearBackground(backgroundColor);
 
-    if(IsKeyPressed(KEY_SPACE))
+    if(gameStartedFirstTime)
     {
-        isGameStarted = !isGameStarted;
+        if(IsKeyPressed(KEY_SPACE) && !gameStartScreenAnimation && !gameStartScreenAnimationText)
+        {
+            isGameStarted = !isGameStarted;
+            gameStartedFirstTime = false;
+        }
+    }
+    else
+    {
+        if(IsKeyPressed(KEY_SPACE))
+        {
+            isGameStarted = !isGameStarted;
+        }
     }
 
     if(isGameOver)
@@ -1140,7 +1254,7 @@ void UpdateDrawFrame(void)
 
     if (isGameStarted)
     {
-        DrawRectangleGradientV(0, 0, WIDTH, HEIGHT, {50, 50, 230, 50}, {200, 122, 255, 255});
+        DrawRectangleGradientV(0, 0, WIDTH, HEIGHT, {50, 50, 230, 30}, {200, 122, 240, 150});
 
         IsGameWon();
 
@@ -1163,7 +1277,7 @@ void UpdateDrawFrame(void)
     }
     else
     {
-        DrawRectangleGradientV(0, 0, WIDTH, HEIGHT, {50, 50, 230}, {200, 122, 255, 255});
+        DrawRectangleGradientV(0, 0, WIDTH, HEIGHT, {50, 50, 230, 30}, {200, 122, 240, 150});
         ScreenResized();
         BallReset(); //* BallReset() function is calling BallMovement() function
         RenderScore();
