@@ -27,6 +27,7 @@ Color backgroundColor = BLACK;
 int newWidth = GetScreenWidth();
 int newHeight = GetScreenHeight();
 bool isGameStarted = false;
+bool isGameEnded = false;
 bool isGameOver = false;
 bool isGameWon = false;
 int highscore = 0;
@@ -110,7 +111,7 @@ struct Size
     int h;
 };
 
-const int minLifetimeValue = 0;
+const int minLifetimeValue = 1;
 const int maxLifetimeValue = 2;
 const int minSizeValue = 3;
 const int maxSizeValue = 9;
@@ -118,7 +119,7 @@ const int particleMinAngle = 40;
 const int particleMaxAngle = 150;
 const int particleMinSpeed = 100;
 const int particleMaxSpeed = 250;
-int maxParticles = 50;
+int maxParticles = 30;
 
 struct Particle
 {
@@ -142,6 +143,12 @@ bool gameStartScreenAnimation = true;
 bool gameStartScreenAnimationText = true;
 bool gameStartedFirstTime = true;
 bool isAnimationCancelled = false;
+bool isGameWonAnimationCompleted = false;
+bool gameWonScreenAnimation = true;
+bool gameWonScreenAnimationText = true;
+bool isGameOverAnimationCompleted = false;
+bool gameOverScreenAnimation = true;
+bool gameOverScreenAnimationText = true;
 
 //! Animation State - ends
 
@@ -161,6 +168,7 @@ void UpdateDrawFrame(void);
 void RenderScore();
 void RenderHighScore();
 void GameState();
+void ResetGameState();
 void GameStartScreen();
 void GameOverScreen();
 void GameWonScreen();
@@ -184,11 +192,13 @@ void DrawParticles();
 void MoveParticles();
 void GenerateParticles(Color tileColor, Vector2 tilePos, bool direction);
 void ParticleCollisionWithTiles();
-bool Animation(float &startingValue, const float &endingValue, float &progress, const float &timeToDecrease, bool &animating, Color &animColor, string animType);
+bool Animation(float &startingValue, const float &endingValue, float &progress, const float &timeToDecrease, bool &animating, Color &animColor);
 void GameGradientBackground();
 void BlurEffect(float posX, float posY, float width, float height, Color color);
 void BlurEffect(float posX, float posY, float width, float height, Color color1, Color color2, Color color3, Color color4);
 void BlurEffect(Font font, const char *text, Vector2 position, float fontSize, float spacing, Color tint);
+bool GameWonAnimation(bool fullAnimNotCompleted);
+bool GameOverAnimation(bool fullAnimNotCompleted);
 //!  function declarations - ends
 
 
@@ -251,6 +261,18 @@ int main()
 
 
 //! Function Defintions
+
+bool Delay(float &currentTime_, const float &delayTime_)
+{
+    currentTime_ += GetFrameTime();
+    if(currentTime_ <= delayTime_)
+    {
+        return false;
+    }
+
+    return true;
+}
+
 void GameState()
 {
     if(gameStartedFirstTime)
@@ -273,6 +295,26 @@ void GameState()
             isGameStarted = !isGameStarted;
         }
     }
+}
+
+void ResetGameState()
+{
+    maxParticles = 30;
+    isGameStarted = false;
+    isGameEnded = false;
+    isGameWon = false;
+    isGameOver = false;
+    generateParticles = false;
+    ballReset = true;
+    gameStartScreenAnimation = true;
+    gameStartScreenAnimationText = true;
+    isAnimationCancelled = false;
+    isGameWonAnimationCompleted = false;
+    gameWonScreenAnimation = true;
+    gameWonScreenAnimationText = true;
+    isGameOverAnimationCompleted = false;
+    gameOverScreenAnimation = true;
+    gameOverScreenAnimationText = true;
 }
 
 void GameGradientBackground()
@@ -311,7 +353,7 @@ void userInput()
 
 void Paddle()
 {
-    if(isGameStarted)
+    if(isGameStarted && !isGameEnded)
     {
         DrawRectangleGradientEx({paddlePosX, paddlePosY, paddleWidth, paddleHeight}, paddleColorFirst, paddleColorSecond, paddleColorThird, paddleColorFourth);
         return;
@@ -355,7 +397,7 @@ void BallReset()
 
 void Ball()
 {
-    if(isGameStarted)
+    if(isGameStarted && !isGameEnded)
     {
         DrawRectangle(ballPosX, ballPosY, ballWidth, ballHeight, ballColor);
         return;
@@ -705,7 +747,7 @@ void InitializeTiles()
 
 void DrawTiles()
 {
-    if(isGameStarted)
+    if(isGameStarted && !isGameEnded)
     {
         for (int i = 0; i < TILESROW; i++)
         {
@@ -773,7 +815,7 @@ void RenderScore()
 {
     const char *text = "Score: ";
     // int textWidth =  MeasureText(text, 30);
-    if(isGameStarted)
+    if(isGameStarted && !isGameEnded)
     {
         // DrawText(TextFormat("Score: %i", score), 10, 10, 20, RED);
         DrawTextEx(font,TextFormat("%s%i", text, score),{20.0f, 10.0f}, 25.0f, 0, RED);
@@ -787,14 +829,14 @@ void RenderHighScore()
 {
     const char *text = "Highscore: ";
     int textWidth =  MeasureText(text, 30);
-    if(isGameStarted)
+    if(isGameStarted && !isGameEnded)
     {
         // DrawText(TextFormat("%s%i", text, highscore), WIDTH - textWidth - 60, 10, 20, YELLOW);
         DrawTextEx(font, TextFormat("%s%i", text, highscore), {(float)(WIDTH - textWidth - 90), 10}, 25, 0, YELLOW);
         return;
     }
 
-    BlurEffect(font, TextFormat("%s%i", text, highscore), {(float)(WIDTH - textWidth - 90), 10.0f}, 25, 0, YELLOW); 
+    BlurEffect(font, TextFormat("%s%i", text, highscore), {(float)(WIDTH - textWidth - 90), 10.0f}, 25, 0, YELLOW);
 }
 
 
@@ -802,33 +844,32 @@ void GameStartScreen()
 {
     static Color animColor = {220, 220, 220, 255};
     static float startingValue = animColor.a;
-    static float endingValue = 180.0f;
-    // static float currentValue = startingValue;
+    static float endingValue = 160.0f;
     static float timeToDecrease = 3.0f;
     static float progress = 0.0f;
 
     static Color textColor = {230, 41, 55, 0};
-
     static float textstartingValue = textColor.a;
     static float textendingValue = 255.0f;
-    // static float textcurrentValue = startingValue;
     static float texttimeToDecrease = 2.0f;
     static float textprogress = 0.0f;
-    
+
     static string textStr = "Press Space Key to Start";
+    // static char *text = "Press Space Key to Start";
     static const char *text = textStr.c_str();
     static int textWidth = MeasureText(text, 40);
 
     if(!isAnimationCancelled)
     {
-        if (gameStartScreenAnimation && Animation(startingValue, endingValue, progress, timeToDecrease, gameStartScreenAnimation, animColor, "gamestart"))
+        if (gameStartScreenAnimation && Animation(startingValue, endingValue, progress, timeToDecrease, gameStartScreenAnimation, animColor))
         {
             DrawRectangle(0, 0, WIDTH, HEIGHT, animColor);
         }
         else
         {
             DrawRectangle(0, 0, WIDTH, HEIGHT, animColor);
-            if (gameStartScreenAnimationText && Animation(textstartingValue, textendingValue, textprogress, texttimeToDecrease, gameStartScreenAnimationText, textColor, "text"))
+            // DrawText(TextFormat(text), WIDTH * 0.5f-textWidth * 0.5f, HEIGHT * 0.5f, 40, RED);
+            if (gameStartScreenAnimationText && Animation(textstartingValue, textendingValue, textprogress, texttimeToDecrease, gameStartScreenAnimationText, textColor))
             {
                 DrawTextEx(font, TextFormat(text), {WIDTH * 0.5f - textWidth * 0.5f, HEIGHT * 0.5f}, 40, 0, textColor);
             }
@@ -841,7 +882,7 @@ void GameStartScreen()
     }
     else
     {
-        animColor.a = 200;
+        animColor.a = 160 /* 200 */;
         DrawRectangle(0, 0, WIDTH, HEIGHT, animColor);
         textColor.a = 255;
         DrawTextEx(font, TextFormat(text), {WIDTH * 0.5f - textWidth * 0.5f, HEIGHT * 0.5f}, 40, 0, textColor); 
@@ -861,7 +902,7 @@ void GameOverScreen()
     int scoreWidth = MeasureText(to_string(score).c_str(), 40);
     // DrawText(TextFormat("%s %d", scoreText, score), WIDTH * 0.5f-scoreTextWidth * 0.5f - scoreWidth * 0.5f, HEIGHT * 0.5f - 100, 40, RED);
     DrawTextEx(font, TextFormat("%s %d", scoreText, score), {WIDTH * 0.5f-scoreTextWidth * 0.5f - scoreWidth * 0.5f, HEIGHT * 0.5f - 100}, 40, 0, RED);
-    const char *restartText = "Press 'Enter' Key to Restart Game";
+    const char *restartText = "Press Enter to Restart Game";
     int restartTextWidth =  MeasureText(restartText, 40);
     // DrawText(TextFormat(restartText), WIDTH * 0.5f-restartTextWidth * 0.5f, HEIGHT * 0.5f, 40, RED);
     DrawTextEx(font, TextFormat(restartText), {WIDTH * 0.5f-restartTextWidth * 0.5f, HEIGHT * 0.5f}, 40, 0, RED);
@@ -879,7 +920,7 @@ void GameWonScreen()
     int scoreWidth = MeasureText(to_string(score).c_str(), 40);
     // DrawText(TextFormat("%s %d", scoreText, score), WIDTH * 0.5f-scoreTextWidth * 0.5f - scoreWidth * 0.5f, HEIGHT * 0.5f - 100, 40, RED);
     DrawTextEx(font, TextFormat("%s %d", scoreText, score), {WIDTH * 0.5f-scoreTextWidth * 0.5f - scoreWidth * 0.5f, HEIGHT * 0.5f - 100}, 40, 0, RED);
-    const char *restartText = "Press 'Enter' Key to Restart Game";
+    const char *restartText = "Press Enter to Restart Game";
     int restartTextWidth =  MeasureText(restartText, 40);
     // DrawText(TextFormat(restartText), WIDTH * 0.5f-restartTextWidth * 0.5f, HEIGHT * 0.5f, 40, RED);
     DrawTextEx(font, TextFormat(restartText), {WIDTH * 0.5f-restartTextWidth * 0.5f, HEIGHT * 0.5f}, 40, 0, RED);
@@ -900,6 +941,8 @@ void IsGameWon()
         }
     }
 
+    gameWonScreenAnimation = gameWonScreenAnimationText = true;
+    isGameEnded = true;
     isGameWon = true;
 }
 
@@ -930,27 +973,31 @@ void GameReset()
     InitializeLifeRects();
     InitializeTiles();
     ParticleInit();
-    isGameStarted = false;
-    generateParticles = false;
-    ballReset = true;
-    gameStartScreenAnimation = true;
-    gameStartScreenAnimationText = true;
-    isAnimationCancelled = false;
+    ResetGameState();
 }
 
 void Lives()
 {
     int fontSize = 22;
     const char *text = "Lives : ";
-    if(isGameStarted)
+    const int textWidth = MeasureText(text, fontSize);
+    float textPosX = (320 + ballWidth - ((ballWidth * 3) + 15.0f * (3 - 1))) * 0.5f;
+    float textPosY = HEIGHT - 30.0f;
+    if(livesrects.size() > 1)
+    {
+        textPosX = livesrects[0].pos.x;
+        textPosY = livesrects[0].pos.y;
+    }
+    
+    if(isGameStarted && !isGameEnded)
     {
         // DrawText(TextFormat(text), 20, HEIGHT - 30, fontSize, MAROON);
-        DrawTextEx(font, TextFormat(text), {20.0f, HEIGHT - 30.0f}, fontSize, 2.0f, ORANGE);
+        DrawTextEx(font, TextFormat(text), {textPosX - textWidth - 30.0f, textPosY}, fontSize, 2.0f, ORANGE);
         DrawLiveRects();
         return;
     }
 
-    BlurEffect(font, TextFormat(text), {20.0f, (HEIGHT - 30.0f)}, fontSize, 2.0f, ORANGE);
+    BlurEffect(font, TextFormat(text), {textPosX - textWidth - 30.0f, textPosY}, fontSize, 2.0f, ORANGE);
     DrawLiveRects();
 }
 
@@ -1088,7 +1135,7 @@ void ParticleInit()
 
 void DrawParticles()
 {
-    if(isGameStarted)
+    if(isGameStarted && !isGameEnded)
     {
         for (int i = 0; i < particles.size(); i++)
         {
@@ -1280,42 +1327,21 @@ void ParticleCollisionWithTiles()
 
 //! Animation system functions - starts
 
-bool Animation(float &startingValue,const  float &endingValue, float &progress, const float &timeToDecrease, bool &animating, Color &animColor, string animType)
+bool Animation(float &startingValue,const  float &endingValue, float &progress, const float &timeToDecrease, bool &animating, Color &animColor)
 {
-    if(animType == "gamestart")
+    progress += GetFrameTime() / timeToDecrease;
+    progress = Clamp(progress, 0.0f, 1.0f);
+    float currentValue = Lerp(startingValue, endingValue, progress);
+    animColor.a = (unsigned char)(currentValue);
+    if (progress >= 1.0f)
     {
-        progress += GetFrameTime() / timeToDecrease;
-        progress = Clamp(progress, 0.0f, 1.0f);
-        float currentValue = Lerp(startingValue, endingValue, progress);
-        animColor.a = (unsigned char)(currentValue);
-        if (progress >= 1.0f)
-        {
-            progress = 0.0f;
-            currentValue = endingValue;
-            animating = false;
-            return false;
-        }
-
-        return true;
-    }
-    else if(animType == "text")
-    {
-        progress += GetFrameTime() / timeToDecrease;
-        progress = Clamp(progress, 0.0f, 1.0f);
-        float currentValue = Lerp(startingValue, endingValue, progress);
-        animColor.a = (unsigned char)(currentValue);
-        if (progress >= 1.0f)
-        {
-            progress = 0.0f;
-            currentValue = endingValue;
-            animating = false;
-            return false;
-        }
-
-        return true;
+        progress = 0.0f;
+        currentValue = endingValue;
+        animating = false;
+        return false;
     }
 
-    return false;
+    return true;
 }
 
 void BlurEffect(float posX, float posY, float width, float height, Color color)
@@ -1351,6 +1377,118 @@ void BlurEffect(Font font, const char *text, Vector2 position, float fontSize, f
     }
 }
 
+bool GameWonAnimation(bool fullAnimNotCompleted)
+{
+    static Color color =  {220, 220, 220, 255};
+    static float startingValue = color.a;
+    static float endingValue = 160.0f;
+    static float timeToDecrease = 3.0f;
+    static float progress = 0.0f;
+    static bool isAnimating = true;
+
+    static Color animColorGW = {220, 220, 220, 255};
+    static float startingValueGW = animColorGW.a;
+    static float endingValueGW = 160.0f;
+    static float timeToDecreaseGW = 3.0f;
+    static float progressGW = 0.0f;
+    
+    static Color textColorGW = {230, 41, 55, 0};
+    static float textstartingValueGW = textColorGW.a;
+    static float textendingValueGW = 255.0f;
+    static float texttimeToDecreaseGW = 2.0f;
+    static float textprogressGW = 0.0f;
+
+    static string textStrGW = "CONGRATULATIONS !! YOU WON ....";
+    static const char *textGW = textStrGW.c_str();
+    static int textWidthGW = MeasureText(textGW, 40);
+
+    if(gameWonScreenAnimation || isAnimating || gameWonScreenAnimationText || fullAnimNotCompleted)
+    {
+        if (gameWonScreenAnimation && Animation(startingValueGW, endingValueGW, progressGW, timeToDecreaseGW, gameWonScreenAnimation, animColorGW))
+        {
+            DrawRectangle(0, 0, WIDTH, HEIGHT, animColorGW);
+            return true;
+        }
+        else
+        {
+            DrawRectangle(0, 0, WIDTH, HEIGHT, animColorGW);
+            if (isAnimating && Animation(startingValue, endingValue, progress, timeToDecrease, isAnimating, color))
+            {
+                Color particleColor;
+                int padding = 200;
+                particleColor.r = (unsigned char)GetRandomValue(0, 255);
+                particleColor.g = (unsigned char)GetRandomValue(0, 255);
+                particleColor.b = (unsigned char)GetRandomValue(0, 255);
+                particleColor.a = 255;
+                Vector2 pos = {randomFloat(padding, WIDTH - padding), randomFloat(padding, HEIGHT - padding)};
+                if (particles.size() < 600)
+                    GenerateParticles(particleColor, pos, (bool)randomInt(0, 1));
+
+                return true;
+            }
+
+            if (gameWonScreenAnimationText && Animation(textstartingValueGW, textendingValueGW, textprogressGW, texttimeToDecreaseGW, gameWonScreenAnimationText, textColorGW))
+            {
+                DrawTextEx(font, TextFormat(textGW), {WIDTH * 0.5f - textWidthGW * 0.5f, HEIGHT * 0.5f}, 40, 0, textColorGW);
+                return true;
+            }
+            else
+            {
+                textColorGW.a = 255;
+                DrawTextEx(font, TextFormat(textGW), {WIDTH * 0.5f - textWidthGW * 0.5f, HEIGHT * 0.5f}, 40, 0, textColorGW);
+                return false;
+            }
+        }
+        return false;
+    }
+    return false;
+}
+
+bool GameOverAnimation(bool fullAnimNotCompleted)
+{
+    static Color animColorGO = { 230, 41, 55, 220 };
+    static float startingValueGO = animColorGO.a;
+    static float endingValueGO = 130.0f;
+    static float timeToDecreaseGO = 3.0f;
+    static float progressGO = 0.0f;
+
+    static Color textColorGO = { 255, 203, 0, 0 } /* {0, 121, 241, 0} */;
+    static float textstartingValueGO = textColorGO.a;
+    static float textendingValueGO = 255.0f;
+    static float texttimeToDecreaseGO = 2.0f;
+    static float textprogressGO = 0.0f;
+
+    static string textStrGO = "HAHA !! YOU LOSE .. TRY AGAIN ...";
+    static const char *textGO = textStrGO.c_str();
+    static int textWidthGO = MeasureText(textGO, 40);
+    
+    if(gameOverScreenAnimation || gameOverScreenAnimationText || fullAnimNotCompleted)
+    {
+        if (gameOverScreenAnimation && Animation(startingValueGO, endingValueGO, progressGO, timeToDecreaseGO, gameOverScreenAnimation, animColorGO))
+        {
+            DrawRectangle(0, 0, WIDTH, HEIGHT, animColorGO);
+            return true;
+        }
+        else
+        {
+            DrawRectangle(0, 0, WIDTH, HEIGHT, animColorGO);
+            if (gameOverScreenAnimationText && Animation(textstartingValueGO, textendingValueGO, textprogressGO, texttimeToDecreaseGO, gameOverScreenAnimationText, textColorGO))
+            {
+                DrawTextEx(font, TextFormat(textGO), {WIDTH * 0.5f - textWidthGO * 0.5f, HEIGHT * 0.5f}, 40, 0, textColorGO);
+                return true;
+            }
+            else
+            {
+                textColorGO.a = 255;
+                DrawTextEx(font, TextFormat(textGO), {WIDTH * 0.5f - textWidthGO * 0.5f, HEIGHT * 0.5f}, 40, 0, textColorGO);
+                return false;
+            }
+        }
+        return false;
+    }
+    return false;
+}
+
 //! Animation system functions - ends
 
 // --------------------------------------------------------------------------------------------------------------
@@ -1367,11 +1505,40 @@ void UpdateDrawFrame(void)
 
     if(isGameOver)
     {
-        GameOverScreen();
-        if(IsKeyPressed(KEY_ENTER))
+        maxParticles = 30;
+        static float delayGO = 2.0f;
+        static float currentTimeGO = 0.0f;
+
+        static float fullAnimNotCompletedGO = true;
+        if(gameOverScreenAnimation || gameOverScreenAnimationText || fullAnimNotCompletedGO)
         {
-            isGameOver = false;
-            GameReset();
+            GameGradientBackground();
+            ScreenResized();
+            RenderScore();
+            RenderHighScore();
+            Ball();
+            Paddle();
+            MoveParticles();
+            DrawTiles();
+            DrawParticles();
+            Lives();
+            DrawFPS(WIDTH - 75, HEIGHT - 20);
+        }
+
+        if(!GameOverAnimation(fullAnimNotCompletedGO))
+        {
+            fullAnimNotCompletedGO = !(Delay(currentTimeGO, delayGO));
+            if(!fullAnimNotCompletedGO)
+            {
+                GameOverScreen();
+                if (IsKeyPressed(KEY_ENTER))
+                {
+                    currentTimeGO = 0.0f;
+                    fullAnimNotCompletedGO = true;
+                    isGameWon = false;
+                    GameReset();
+                }
+            }
         }
         EndDrawing();
         return;
@@ -1379,11 +1546,40 @@ void UpdateDrawFrame(void)
 
     if(isGameWon)
     {
-        GameWonScreen();
-        if(IsKeyPressed(KEY_ENTER))
+        maxParticles = 30;
+        static float delayGW = 2.0f;
+        static float currentTimeGW = 0.0f;
+
+        static float fullAnimNotCompletedGW = true;
+        if(gameWonScreenAnimation || gameWonScreenAnimationText || fullAnimNotCompletedGW)
         {
-            isGameWon = false;
-            GameReset();
+            GameGradientBackground();
+            ScreenResized();
+            RenderScore();
+            RenderHighScore();
+            Ball();
+            Paddle();
+            MoveParticles();
+            DrawTiles();
+            DrawParticles();
+            Lives();
+            DrawFPS(WIDTH - 75, HEIGHT - 20);
+        }
+
+        if(!GameWonAnimation(fullAnimNotCompletedGW))
+        {
+            fullAnimNotCompletedGW = !(Delay(currentTimeGW, delayGW));
+            if(!fullAnimNotCompletedGW)
+            {
+                GameWonScreen();
+                if (IsKeyPressed(KEY_ENTER))
+                {
+                    currentTimeGW = 0.0f;
+                    fullAnimNotCompletedGW = true;
+                    isGameWon = false;
+                    GameReset();
+                }
+            }
         }
         EndDrawing();
         return;

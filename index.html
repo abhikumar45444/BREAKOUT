@@ -25,6 +25,9 @@
     <meta content=https://www.raylib.com/games.html name=twitter:url>
     <meta content="New raylib web videogame, developed using raylib videogames library" name=twitter:description>
     <link href=https://www.raylib.com/favicon.ico rel="shortcut icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Press+Start+2P&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: arial;
@@ -49,9 +52,11 @@
 
         .emscripten {
             padding-right: 0;
+            
             margin-left: auto;
             margin-right: auto;
-            display: block
+            display: block;
+            width: fit-content;
         }
 
         div.emscripten {
@@ -130,7 +135,8 @@
             margin-top: 30px;
             margin-left: 20px;
             font-weight: 700;
-            color: #282828
+            color: #282828;
+            display: none;
         }
 
         #progress {
@@ -173,16 +179,29 @@
             background-color: #f5f5f5ff;
             border-color: #000
         }
+
+        #audiotext {
+            font-family: "Montserrat, sans-serif";
+            font-weight: 500;
+            font-style: italic;
+            font-weight: bold;
+            font-size: larger;
+            text-align: center;
+            display: inline-block;
+            padding-top: 1rem;
+            color: rgb(56, 12, 29);
+        }
     </style>
 </head>
 
 <body>
     <div id=header>
         <div class=spinner id=spinner></div>
-        <div class=emscripten id=status>Downloading...</div><span id=controls><span></span><span><input onclick=Module.requestFullscreen(!1,!1) type=button value="🖵 FULLSCREEN"></span>
+        <div class=emscripten id=status>Downloading...</div><span id=controls><span><input onclick=Module.requestFullscreen(!1,!1) type=button value="🖵 FULLSCREEN"></span>
         <span><input type=button value="🔇 MUTE" id="btn-audio" class="audio-start-button"></span></span>
-        <div
-            class=emscripten><progress hidden id=progress max=100 value=0></progress></div>
+        <div class=emscripten><progress hidden id=progress max=100 value=0></progress>
+            <span id="audiotext">To enable audio start the game first then click on Resume button</span>
+        </div>
     </div>
     <div class=emscripten_border><canvas class=emscripten id=canvas oncontextmenu=event.preventDefault() tabindex=-1></canvas></div>
     <script src=https://cdn.jsdelivr.net/gh/eligrey/FileSaver.js/dist/FileSaver.min.js></script>
