@@ -4,6 +4,9 @@
  
  ![thumbnail](./Breakout.png)
 
+## BREAKOUT GAME PREVIEW
+https://github.com/abhikumar45444/BREAKOUT/assets/76621656/78692e5c-fbf9-4350-b097-93bd0d8232b9
+
 ## DESCRIPTION
  A player moves the paddle back and forth horizontally to hit and ricochet the ball to cause it to break the bricks on top of the screen.
  If the ball reaches the bottom of the screen it costs one life.
