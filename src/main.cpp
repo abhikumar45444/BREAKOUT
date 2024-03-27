@@ -85,6 +85,7 @@ struct Tile
 };
 
 vector<vector<Tile>> tiles(TILESROW);
+vector<Color> brickRowColor;
 float tileWidth = 70.0f;
 float tileHeight = 12.0f;
 
@@ -158,6 +159,7 @@ void Ball();
 void BallMovement();
 void BallCollisionWithPaddle();
 void BallCollisionWithTiles();
+void InitializeBrickColors();
 void InitializeTiles();
 void DrawTiles();
 void UpdateDrawFrame(void);
@@ -226,6 +228,7 @@ int main()
     const int FPS = 60;
     SetTargetFPS(FPS);
 
+    InitializeBrickColors();
     InitializeTiles();
     InitializeLifeRects();
     ParticleInit();
@@ -467,6 +470,7 @@ void BallMovement()
         else
         {
             isGameOver = true;
+            isGameEnded = true;
         }
     }
 }
@@ -673,14 +677,10 @@ void BallCollisionWithTiles()
     }
 }
 
-void InitializeTiles()
+void InitializeBrickColors()
 {
-    float posX = (WIDTH - ((tileWidth * TILESCOL) + 30.0f * (TILESCOL - 1))) * 0.5f;
-    float posY = 50.0f;
-
-    vector<Color> brickRowColor;
-
-    for (int row = 0; row < TILESROW; row++) {
+    for (int row = 0; row < TILESROW; row++) 
+    {
         Vector4 red = srgb_to_linear(Vector4{1, 0.18f, 0.18f, 1});
         Vector4 green = srgb_to_linear(Vector4{0.18f, 1, 0.18f, 1});
         Vector4 blue = srgb_to_linear(Vector4{0.18f, 0.18f, 1, 1});
@@ -701,6 +701,12 @@ void InitializeTiles()
         Color color = ColorFromNormalized(colorVec);
         brickRowColor.push_back(color);
     }
+}
+
+void InitializeTiles()
+{
+    float posX = (WIDTH - ((tileWidth * TILESCOL) + 30.0f * (TILESCOL - 1))) * 0.5f;
+    float posY = 50.0f;
 
     for (int i = 0; i < TILESROW; i++)
     {
@@ -949,6 +955,7 @@ void GameReset()
     ballPosY = paddlePosY - paddleHeight * 0.5f - ballHeight * 0.5f - ballGap;
     ballSpeedX = ballSpeedY = ballSpeed;
 
+    brickRowColor.clear();
     livesrects.clear();
     particles.clear();
 
@@ -957,6 +964,7 @@ void GameReset()
         tiles[i].clear();
     }
 
+    InitializeBrickColors();
     InitializeLifeRects();
     InitializeTiles();
     ParticleInit();
@@ -1401,12 +1409,13 @@ bool GameWonAnimation(bool fullAnimNotCompleted)
             DrawRectangle(0, 0, WIDTH, HEIGHT, animColorGW);
             if (isAnimating && Animation(startingValue, endingValue, progress, timeToDecrease, isAnimating, color))
             {
-                Color particleColor;
+                int randomIndex = GetRandomValue(0, brickRowColor.size() - 1);
+                Color particleColor = brickRowColor[randomIndex];
                 int padding = 200;
-                particleColor.r = (unsigned char)GetRandomValue(0, 255);
-                particleColor.g = (unsigned char)GetRandomValue(0, 255);
-                particleColor.b = (unsigned char)GetRandomValue(0, 255);
-                particleColor.a = 255;
+                // particleColor.r = (unsigned char)GetRandomValue(0, 255);
+                // particleColor.g = (unsigned char)GetRandomValue(0, 255);
+                // particleColor.b = (unsigned char)GetRandomValue(0, 255);
+                // particleColor.a = 255;
                 Vector2 pos = {randomFloat(padding, WIDTH - padding), randomFloat(padding, HEIGHT - padding)};
                 if (particles.size() < 600)
                     GenerateParticles(particleColor, pos, (bool)randomInt(0, 1));
