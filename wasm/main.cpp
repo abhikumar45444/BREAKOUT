@@ -101,6 +101,9 @@ Sound tileBreakSound;
 Sound tileHitSound;
 Sound ballBreakSound;
 Sound paddleHitSound;
+Sound gameWonSound;
+Sound gameOverSound;
+Music gameMusic;
 
 //! Game Font
 Font font;
@@ -139,7 +142,7 @@ vector<Particle> particles;
 
 
 //! Animation State - starts
-
+bool isAnimating = true;
 bool gameStartScreenAnimation = true;
 bool gameStartScreenAnimationText = true;
 bool gameStartedFirstTime = true;
@@ -218,11 +221,16 @@ int main()
     tileHitSound = LoadSound("../resources/tilehit.ogg");
     ballBreakSound = LoadSound("../resources/ballbreak.ogg");
     paddleHitSound = LoadSound("../resources/paddlehit.ogg");
+    gameWonSound = LoadSound("../resources/gamewon.ogg");
+    gameOverSound = LoadSound("../resources/gameover.ogg");
+    gameMusic = LoadMusicStream("../resources/gamemusic.mp3");
+    gameMusic.looping = true;
 
     SetSoundVolume(tileBreakSound, 0.5f);
     SetSoundVolume(tileHitSound, 0.5f);
     SetSoundVolume(ballBreakSound, 0.5f);
     SetSoundVolume(paddleHitSound, 0.7f);
+    SetMusicVolume(gameMusic, 0.2f);
 
     const char *filename = "../resources/font.ttf";
     font = LoadFontEx(filename, 50, 0, 250);
@@ -258,6 +266,9 @@ int main()
     UnloadSound(ballBreakSound);
     UnloadSound(tileBreakSound);
     UnloadSound(paddleHitSound);
+    UnloadSound(gameWonSound);
+    UnloadSound(gameOverSound);
+    UnloadMusicStream(gameMusic);
     CloseAudioDevice();
     CloseWindow();
     return 0;
@@ -283,12 +294,14 @@ void GameState()
     {
         if(IsKeyPressed(KEY_SPACE) && !gameStartScreenAnimation && !gameStartScreenAnimationText)
         {
+            PlayMusicStream(gameMusic);
             isGameStarted = !isGameStarted;
             gameStartedFirstTime = false;
         }
     }
     else
     {
+        PlayMusicStream(gameMusic);
         if(IsKeyPressed(KEY_SPACE) && !isAnimationCancelled)
         {
             isGameStarted = !isGameStarted;
@@ -312,6 +325,7 @@ void ResetGameState()
     ballReset = true;
     gameStartScreenAnimation = true;
     gameStartScreenAnimationText = true;
+    isAnimating = true;
     isAnimationCancelled = false;
     isGameWonAnimationCompleted = false;
     gameWonScreenAnimation = true;
@@ -1393,7 +1407,7 @@ bool GameWonAnimation(bool fullAnimNotCompleted)
     static float endingValue = 160.0f;
     static float timeToDecrease = 3.0f;
     static float progress = 0.0f;
-    static bool isAnimating = true;
+    // static bool isAnimating = true;
 
     static Color animColorGW = {220, 220, 220, 255};
     static float startingValueGW = animColorGW.a;
@@ -1423,6 +1437,8 @@ bool GameWonAnimation(bool fullAnimNotCompleted)
             DrawRectangle(0, 0, WIDTH, HEIGHT, animColorGW);
             if (isAnimating && Animation(startingValue, endingValue, progress, timeToDecrease, isAnimating, color))
             {
+                if(!IsSoundPlaying(gameWonSound))
+                    PlaySound(gameWonSound);
                 int randomIndex = GetRandomValue(0, brickRowColor.size() - 1);
                 Color particleColor = brickRowColor[randomIndex];
                 int padding = 200;
@@ -1484,6 +1500,8 @@ bool GameOverAnimation(bool fullAnimNotCompleted)
             DrawRectangle(0, 0, WIDTH, HEIGHT, animColorGO);
             if (gameOverScreenAnimationText && Animation(textstartingValueGO, textendingValueGO, textprogressGO, texttimeToDecreaseGO, gameOverScreenAnimationText, textColorGO))
             {
+                if(!IsSoundPlaying(gameOverSound))
+                    PlaySound(gameOverSound);
                 DrawTextEx(font, TextFormat(textGO), {WIDTH * 0.5f - textWidthGO * 0.5f, HEIGHT * 0.5f}, 40, 0, textColorGO);
                 return true;
             }
@@ -1507,11 +1525,13 @@ bool GameOverAnimation(bool fullAnimNotCompleted)
 
 void UpdateDrawFrame(void)
 {
+    UpdateMusicStream(gameMusic);
     BeginDrawing();
 
     ClearBackground(backgroundColor);
 
-    GameState(); // game has started or paused, toggles game state
+    if(!isGameOver && !isGameWon)
+        GameState(); // game has started or paused, toggles game state
 
     if(isGameOver)
     {
@@ -1520,6 +1540,10 @@ void UpdateDrawFrame(void)
         static float currentTimeGO = 0.0f;
 
         static float fullAnimNotCompletedGO = true;
+
+        if(IsMusicStreamPlaying(gameMusic))
+            StopMusicStream(gameMusic);
+
         if(gameOverScreenAnimation || gameOverScreenAnimationText || fullAnimNotCompletedGO)
         {
             GameGradientBackground();
@@ -1561,6 +1585,10 @@ void UpdateDrawFrame(void)
         static float currentTimeGW = 0.0f;
 
         static float fullAnimNotCompletedGW = true;
+
+        if(IsMusicStreamPlaying(gameMusic))
+            StopMusicStream(gameMusic);
+
         if(gameWonScreenAnimation || gameWonScreenAnimationText || fullAnimNotCompletedGW)
         {
             GameGradientBackground();
@@ -1597,6 +1625,7 @@ void UpdateDrawFrame(void)
 
     if (isGameStarted)
     {
+        ResumeMusicStream(gameMusic);
         GameGradientBackground();
         IsGameWon();
         ScreenResized();
@@ -1617,6 +1646,7 @@ void UpdateDrawFrame(void)
     }
     else
     {
+        PauseMusicStream(gameMusic);
         GameGradientBackground();
         ScreenResized();
         BallReset(); //* BallReset() function is calling BallMovement() function
