@@ -207,7 +207,7 @@ void BlurEffect(float posX, float posY, float width, float height, Color color1,
 void BlurEffect(Font font, const char *text, Vector2 position, float fontSize, float spacing, Color tint);
 bool GameWonAnimation(bool fullAnimNotCompleted);
 bool GameOverAnimation(bool fullAnimNotCompleted);
-bool TouchStartGameInput();
+int TouchStartGameInput();
 //!  function declarations - ends
 
 
@@ -215,7 +215,7 @@ int main()
 {
     srand(time(0));
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-    SetGesturesEnabled(GESTURE_DOUBLETAP | GESTURE_DRAG);
+    SetGesturesEnabled(GESTURE_SWIPE_UP | GESTURE_SWIPE_DOWN | GESTURE_DRAG);
 
     //* Window initialization
     InitWindow(WIDTH, HEIGHT, TITLE);
@@ -277,18 +277,30 @@ int main()
 
 //! Function Defintions
 
-bool TouchStartGameInput()
+int TouchStartGameInput()
 {
     touchPosition = GetTouchPosition(0);
-    bool touchStartGameInput = false;
+    int gestureGenerated = 0;
     gesture = GetGestureDetected();
 
-    if (gesture == GESTURE_DOUBLETAP && touchPosition.x > 0 && touchPosition.y > 0)
+    if(IsGestureDetected(GESTURE_SWIPE_UP))
     {
-        touchStartGameInput = touchPosition.x > 0 && touchPosition.x < WIDTH && touchPosition.y > 0 && touchPosition.y < HEIGHT;
+        gestureGenerated = GESTURE_SWIPE_UP;
+        if(touchPosition.x > 0 && touchPosition.x < WIDTH && touchPosition.y > 0 && touchPosition.y < HEIGHT)
+        {
+            return gestureGenerated;
+        }
+    }
+    else if(IsGestureDetected(GESTURE_SWIPE_DOWN))
+    {
+        gestureGenerated = GESTURE_SWIPE_DOWN;
+        if(touchPosition.x > 0 && touchPosition.x < WIDTH && touchPosition.y > 0 && touchPosition.y < HEIGHT)
+        {
+            return gestureGenerated;
+        }
     }
 
-    return touchStartGameInput;
+    return gestureGenerated;
 }
 
 bool Delay(float &currentTime_, const float &delayTime_)
@@ -304,11 +316,11 @@ bool Delay(float &currentTime_, const float &delayTime_)
 
 void GameState()
 {
-    bool touchStartGameInput = TouchStartGameInput();
+    int touchStartGameInput = TouchStartGameInput();
 
     if(gameStartedFirstTime)
     {
-        if((IsKeyPressed(KEY_SPACE) || touchStartGameInput) && !gameStartScreenAnimation && !gameStartScreenAnimationText)
+        if((IsKeyPressed(KEY_SPACE) || touchStartGameInput == GESTURE_SWIPE_UP) && !gameStartScreenAnimation && !gameStartScreenAnimationText)
         {
             PlayMusicStream(gameMusic);
             isGameStarted = !isGameStarted;
@@ -318,12 +330,12 @@ void GameState()
     else
     {
         PlayMusicStream(gameMusic);
-        if((IsKeyPressed(KEY_SPACE) || touchStartGameInput) && !isAnimationCancelled)
+        if((IsKeyPressed(KEY_SPACE) || touchStartGameInput == GESTURE_SWIPE_UP || touchStartGameInput == GESTURE_SWIPE_DOWN) && !isAnimationCancelled)
         {
             isGameStarted = !isGameStarted;
             isAnimationCancelled = true;
         }
-        else if((IsKeyPressed(KEY_SPACE) || touchStartGameInput))
+        else if(IsKeyPressed(KEY_SPACE) || touchStartGameInput == GESTURE_SWIPE_DOWN)
         {
             isGameStarted = !isGameStarted;
         }
@@ -905,10 +917,23 @@ void GameStartScreen()
     static float texttimeToDecrease = 2.0f;
     static float textprogress = 0.0f;
 
-    static string textStr = "Press < Space Key or Double Tap Screen > to Start";
-    // static char *text = "Press Space Key to Start";
+    // static string textStr = "Please < Press Space Key or Swipe Up on Screen > to Start Game";
+    static string textStr = "                 To Start Game\n\n< Press Space Key or Swipe Up on Screen >";
     static const char *text = textStr.c_str();
-    static int textWidth = MeasureText(text, 33);
+    static int textFontSize = 35;
+    static int textWidth = MeasureText(text, textFontSize);
+
+    // static string pausePlayTextStr = "Please < Press Space Key or Swipe Down on Screen > to Pause/Resume";
+    static string pausePlayTextStr = "                 To Pause/Resume\n\n< Press Space Key or Swipe Down on Screen >";
+    static const char *pausePlaytext = pausePlayTextStr.c_str();
+    static int pausePlayTextFontSize = 30;
+    static int pausePlaytextWidth = MeasureText(pausePlaytext, pausePlayTextFontSize);
+
+    // static string pausetextStr = "Game Paused < Press Space Key or Swipe Down on Screen > to Resume";
+    static string pausetextStr = "                  Game Paused\n\n< Press Space Key or Swipe Down on Screen >\n\n                   to Resume";
+    static const char *pausetext = pausetextStr.c_str();
+    static int pauseTextFontSize = 33;
+    static int pausetextWidth = MeasureText(pausetext, pauseTextFontSize);
 
     if(!isAnimationCancelled)
     {
@@ -922,12 +947,14 @@ void GameStartScreen()
             // DrawText(TextFormat(text), WIDTH * 0.5f-textWidth * 0.5f, HEIGHT * 0.5f, 40, RED);
             if (gameStartScreenAnimationText && Animation(textstartingValue, textendingValue, textprogress, texttimeToDecrease, gameStartScreenAnimationText, textColor))
             {
-                DrawTextEx(font, TextFormat(text), {WIDTH * 0.5f - textWidth * 0.56f, HEIGHT * 0.5f}, 33, 0, textColor);
+                DrawTextEx(font, TextFormat(text), {WIDTH * 0.5f - textWidth * 0.63f, HEIGHT * 0.5f}, textFontSize, 2.0f, textColor);
+                DrawTextEx(font, TextFormat(pausePlaytext), {WIDTH * 0.5f - pausePlaytextWidth * 0.62f, HEIGHT * 0.65f}, pausePlayTextFontSize, 2.0f, textColor);
             }
             else
             {
                 textColor.a = 255;
-                DrawTextEx(font, TextFormat(text), {WIDTH * 0.5f - textWidth * 0.56f, HEIGHT * 0.5f}, 33, 0, textColor);
+                DrawTextEx(font, TextFormat(text), {WIDTH * 0.5f - textWidth * 0.63f, HEIGHT * 0.5f}, textFontSize, 2.0f, textColor);
+                DrawTextEx(font, TextFormat(pausePlaytext), {WIDTH * 0.5f - pausePlaytextWidth * 0.62f, HEIGHT * 0.65f}, pausePlayTextFontSize, 2.0f, textColor);
             }
         }
     }
@@ -936,7 +963,7 @@ void GameStartScreen()
         animColor.a = 160 /* 200 */;
         DrawRectangle(0, 0, WIDTH, HEIGHT, animColor);
         textColor.a = 255;
-        DrawTextEx(font, TextFormat(text), {WIDTH * 0.5f - textWidth * 0.56f, HEIGHT * 0.5f}, 33, 0, textColor); 
+        DrawTextEx(font, TextFormat(pausetext), {WIDTH * 0.5f - pausetextWidth * 0.62f, HEIGHT * 0.5f}, pauseTextFontSize, 2.0f, textColor);  
     }
 }
 
@@ -952,7 +979,7 @@ void GameOverScreen()
     int scoreWidth = MeasureText(to_string(score).c_str(), 40);
     // DrawText(TextFormat("%s %d", scoreText, score), WIDTH * 0.5f-scoreTextWidth * 0.5f - scoreWidth * 0.5f, HEIGHT * 0.5f - 100, 40, RED);
     DrawTextEx(font, TextFormat("%s %d", scoreText, score), {WIDTH * 0.5f-scoreTextWidth * 0.5f - scoreWidth * 0.5f, HEIGHT * 0.5f - 100}, 40, 0, RED);
-    const char *restartText = "Press < Enter or Double Tap Screen > to Restart Game";
+    const char *restartText = "Press < Enter Key or Swipe Up on Screen > to Restart Game";
     int restartTextWidth =  MeasureText(restartText, 32);
     // DrawText(TextFormat(restartText), WIDTH * 0.5f-restartTextWidth * 0.5f, HEIGHT * 0.5f, 40, RED);
     DrawTextEx(font, TextFormat(restartText), {WIDTH * 0.5f-restartTextWidth * 0.57f, HEIGHT * 0.5f}, 32, 0, RED);
@@ -970,7 +997,7 @@ void GameWonScreen()
     int scoreWidth = MeasureText(to_string(score).c_str(), 40);
     // DrawText(TextFormat("%s %d", scoreText, score), WIDTH * 0.5f-scoreTextWidth * 0.5f - scoreWidth * 0.5f, HEIGHT * 0.5f - 100, 40, RED);
     DrawTextEx(font, TextFormat("%s %d", scoreText, score), {WIDTH * 0.5f-scoreTextWidth * 0.5f - scoreWidth * 0.5f, HEIGHT * 0.5f - 100}, 40, 0, RED);
-    const char *restartText = "Press < Enter or Double Tap Screen > to Restart Game";
+    const char *restartText = "Press < Enter key or Swipe Up on Screen > to Restart Game";
     int restartTextWidth =  MeasureText(restartText, 32);
     // DrawText(TextFormat(restartText), WIDTH * 0.5f-restartTextWidth * 0.5f, HEIGHT * 0.5f, 40, RED);
     DrawTextEx(font, TextFormat(restartText), {WIDTH * 0.5f-restartTextWidth * 0.57f, HEIGHT * 0.5f}, 32, 0, RED);
@@ -1594,8 +1621,8 @@ void UpdateDrawFrame(void)
             if(!fullAnimNotCompletedGO)
             {
                 GameOverScreen();
-                bool touchStartGameInput = TouchStartGameInput();
-                if (IsKeyPressed(KEY_ENTER) || touchStartGameInput)
+                int touchStartGameInput = TouchStartGameInput();
+                if (IsKeyPressed(KEY_ENTER) || touchStartGameInput == GESTURE_SWIPE_UP)
                 {
                     currentTimeGO = 0.0f;
                     fullAnimNotCompletedGO = true;
@@ -1640,8 +1667,8 @@ void UpdateDrawFrame(void)
             if(!fullAnimNotCompletedGW)
             {
                 GameWonScreen();
-                bool touchStartGameInput = TouchStartGameInput();
-                if (IsKeyPressed(KEY_ENTER) || touchStartGameInput)
+                int touchStartGameInput = TouchStartGameInput();
+                if (IsKeyPressed(KEY_ENTER) || touchStartGameInput == GESTURE_SWIPE_UP)
                 {
                     currentTimeGW = 0.0f;
                     fullAnimNotCompletedGW = true;
