@@ -99,6 +99,7 @@ Sound ballBreakSound;
 Sound paddleHitSound;
 Sound gameWonSound;
 Sound gameOverSound;
+Sound victorySound;
 Music gameMusic;
 
 //! Game Font
@@ -229,6 +230,7 @@ int main()
     paddleHitSound = LoadSound("../resources/paddlehit.ogg");
     gameWonSound = LoadSound("../resources/gamewon.ogg");
     gameOverSound = LoadSound("../resources/gameover.ogg");
+    victorySound = LoadSound("../resources/victory.ogg");
     gameMusic = LoadMusicStream("../resources/gamemusic.mp3");
     gameMusic.looping = true;
 
@@ -269,6 +271,7 @@ int main()
     UnloadSound(paddleHitSound);
     UnloadSound(gameWonSound);
     UnloadSound(gameOverSound);
+    UnloadSound(victorySound);
     UnloadMusicStream(gameMusic);
     CloseAudioDevice();
     CloseWindow();
@@ -1511,6 +1514,8 @@ bool GameWonAnimation(bool fullAnimNotCompleted)
 
             if (gameWonScreenAnimationText && Animation(textstartingValueGW, textendingValueGW, textprogressGW, texttimeToDecreaseGW, gameWonScreenAnimationText, textColorGW))
             {
+                if(!IsSoundPlaying(victorySound))
+                    PlaySound(victorySound);
                 DrawTextEx(font, TextFormat(textGW), {WIDTH * 0.5f - textWidthGW * 0.5f, HEIGHT * 0.5f}, 40, 0, textColorGW);
                 return true;
             }
@@ -1666,6 +1671,10 @@ void UpdateDrawFrame(void)
             fullAnimNotCompletedGW = !(Delay(currentTimeGW, delayGW));
             if(!fullAnimNotCompletedGW)
             {
+                if(IsSoundPlaying(gameWonSound))
+                    StopSound(gameWonSound);
+                if(IsSoundPlaying(victorySound))
+                    StopSound(victorySound);
                 GameWonScreen();
                 int touchStartGameInput = TouchStartGameInput();
                 if (IsKeyPressed(KEY_ENTER) || touchStartGameInput == GESTURE_SWIPE_UP)
