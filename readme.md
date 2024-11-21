@@ -5,7 +5,11 @@
  ![thumbnail](./Breakout.png)
 
 ## BREAKOUT GAME PREVIEW
-https://github.com/abhikumar45444/BREAKOUT/assets/76621656/78692e5c-fbf9-4350-b097-93bd0d8232b9
+https://github.com/abhikumar
+
+https://github.com/user-attachments/assets/e1661713-ae2a-49df-8581-eef9327c1f49
+
+45444/BREAKOUT/assets/76621656/78692e5c-fbf9-4350-b097-93bd0d8232b9
 
 ## DESCRIPTION
  A player moves the paddle back and forth horizontally to hit and ricochet the ball to cause it to break the bricks on top of the screen.
