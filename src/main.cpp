@@ -1,4 +1,4 @@
-#include <raylib.h>
+#include "../include/raylib.h"
 #include <iostream>
 #include <vector>
 #include <utility>
@@ -49,13 +49,17 @@ float paddleHeight = 15.0f;
 float paddlePosX = WIDTH * 0.5f - paddleWidth * 0.5f;
 float paddlePosY = HEIGHT - 50;
 Color paddleColor = DARKBLUE;
-float paddleSpeed = 400.0f;
+// float paddleSpeed = 400.0f;
 bool isPaddleDirLeft = false;
 bool isPaddleDirRight = false;
 Color paddleColorFirst = { 255, 20, 30, 255 };
 Color paddleColorSecond = BLACK;
 Color paddleColorThird = { 255, 20, 30, 255 };
 Color paddleColorFourth = { 180, 180, 180, 255 };
+float paddleSpeedX = 0.0f;  // Initial speed
+float paddleAcceleration = 800.0f;  // Acceleration rate
+float paddleDeceleration = 900.0f;  // Deceleration rate
+float paddleSpeedLimit = 700.0f;    // Paddle speed limit
 
 
 //! ball variables
@@ -154,12 +158,21 @@ bool gameOverScreenAnimationText = true;
 //! Animation State - ends
 
 //! Touch Input - starts
+#define MAX_TOUCH_POINTS 2
+int tCount = 0;
+// Vector2 touchPosition = {-1, -1};
 
-Vector2 touchPosition = {-1, -1};
+Vector2 touchPositions[MAX_TOUCH_POINTS] = { 0 };
 int gesture = GESTURE_NONE;
 
-//! Touch Input - ends 
+//! Touch Input - ends
 
+//! Arrow Button - starts
+enum ArrowButtonDirection{
+    LEFT_ARROW, RIGHT_ARROW
+};
+//! Arrow Button - ends
+ 
 
 //!  function declarations - starts
 void ScreenResized();
@@ -206,9 +219,14 @@ void GameGradientBackground();
 void BlurEffect(float posX, float posY, float width, float height, Color color);
 void BlurEffect(float posX, float posY, float width, float height, Color color1, Color color2, Color color3, Color color4);
 void BlurEffect(Font font, const char *text, Vector2 position, float fontSize, float spacing, Color tint);
+void BlurEffect(Vector2 startPos, Vector2 endPos, float thick, Color color);
 bool GameWonAnimation(bool fullAnimNotCompleted);
 bool GameOverAnimation(bool fullAnimNotCompleted);
 int TouchStartGameInput();
+void ComputeArrowButtonCordinates(ArrowButtonDirection arrowDirection, const int &arrowWidth, const int &arrowHeight, const Vector2 &arrowStart, Vector2 &lineOneStart, Vector2 &lineOneEnd, Vector2 &lineTwoStart,
+                                  Vector2 &lineTwoEnd);
+void DrawArrowButton(const ArrowButtonDirection arrowDirection);
+bool ArrowGesture(ArrowButtonDirection arrowDirection, bool &leftGesture, bool &rightGesture);
 //!  function declarations - ends
 
 
@@ -258,7 +276,7 @@ int main()
     }
 
     //* game loop
-    while (!WindowShouldClose())
+    while (!WindowShouldClose() && !IsKeyPressed(KEY_BACK))
     {
         UpdateDrawFrame();
     }
@@ -282,14 +300,14 @@ int main()
 
 int TouchStartGameInput()
 {
-    touchPosition = GetTouchPosition(0);
+    touchPositions[0] = GetTouchPosition(0);
     int gestureGenerated = 0;
     gesture = GetGestureDetected();
 
     if(IsGestureDetected(GESTURE_SWIPE_UP))
     {
         gestureGenerated = GESTURE_SWIPE_UP;
-        if(touchPosition.x > 0 && touchPosition.x < WIDTH && touchPosition.y > 0 && touchPosition.y < HEIGHT)
+        if(touchPositions[0].x > 0 && touchPositions[0].x < WIDTH && touchPositions[0].y > 0 && touchPositions[0].y < HEIGHT)
         {
             return gestureGenerated;
         }
@@ -297,7 +315,7 @@ int TouchStartGameInput()
     else if(IsGestureDetected(GESTURE_SWIPE_DOWN))
     {
         gestureGenerated = GESTURE_SWIPE_DOWN;
-        if(touchPosition.x > 0 && touchPosition.x < WIDTH && touchPosition.y > 0 && touchPosition.y < HEIGHT)
+        if(touchPositions[0].x > 0 && touchPositions[0].x < WIDTH && touchPositions[0].y > 0 && touchPositions[0].y < HEIGHT)
         {
             return gestureGenerated;
         }
@@ -332,14 +350,15 @@ void GameState()
     }
     else
     {
-        PlayMusicStream(gameMusic);
         if((IsKeyPressed(KEY_SPACE) || touchStartGameInput == GESTURE_SWIPE_UP || touchStartGameInput == GESTURE_SWIPE_DOWN) && !isAnimationCancelled)
         {
+            PlayMusicStream(gameMusic);
             isGameStarted = !isGameStarted;
             isAnimationCancelled = true;
         }
         else if(IsKeyPressed(KEY_SPACE) || touchStartGameInput == GESTURE_SWIPE_DOWN)
         {
+           PlayMusicStream(gameMusic);
             isGameStarted = !isGameStarted;
         }
     }
@@ -365,6 +384,12 @@ void ResetGameState()
     gameOverScreenAnimation = true;
     gameOverScreenAnimationText = true;
     gesture = GESTURE_NONE;
+    for (int i = 0; i < MAX_TOUCH_POINTS; i++)
+    {
+        touchPositions[i].x = 0;
+        touchPositions[i].y = 0;
+    }
+    
 }
 
 void GameGradientBackground()
@@ -374,16 +399,22 @@ void GameGradientBackground()
 
 void userInput()
 {
-    bool gestureDetected = false;
+    tCount = GetTouchPointCount();
+    if(tCount > MAX_TOUCH_POINTS) tCount = MAX_TOUCH_POINTS;
+     // Get touch points positions
+    for (int i = 0; i < tCount; ++i)
+        touchPositions[i] = GetTouchPosition(i);
+    
+    bool leftGesture = false;
+    bool rightGesture = false;
 
-    if(IsGestureDetected(GESTURE_DRAG))
-    {
-        gestureDetected = true;
-    }
+    static float paddleAccelerationFactor = 1.5f;
+    static float paddleDecelerationFactor = 0.5f;
+    static float paddleUTurnDecelerationFactor = 10.0f;
 
-    if (IsKeyDown(KEY_LEFT) || (gestureDetected && GetTouchPosition(0).x < paddlePosX))
+    if (IsKeyDown(KEY_LEFT) || (ArrowGesture(LEFT_ARROW, leftGesture, rightGesture)))
     {
-        paddlePosX -= paddleSpeed * GetFrameTime();
+        paddleSpeedX -= paddleAcceleration * GetFrameTime() * paddleAccelerationFactor;
         isPaddleDirLeft = true;
         isPaddleDirRight = false;
     }
@@ -392,9 +423,9 @@ void userInput()
         isPaddleDirLeft = false;
     }
 
-    if (IsKeyDown(KEY_RIGHT) || (gestureDetected && GetTouchPosition(0).x > paddlePosX))
+    if (IsKeyDown(KEY_RIGHT) || (ArrowGesture(RIGHT_ARROW, leftGesture, rightGesture)))
     {
-        paddlePosX += paddleSpeed * GetFrameTime();
+        paddleSpeedX += paddleAcceleration * GetFrameTime() * paddleAccelerationFactor;
         isPaddleDirLeft = false;
         isPaddleDirRight = true;
     }
@@ -403,8 +434,55 @@ void userInput()
         isPaddleDirRight = false;
     }
 
-    paddlePosX = Clamp(paddlePosX, 0.0f, paddlePosX+paddleWidth);
-    paddlePosX = Clamp(paddlePosX, paddlePosX-paddleWidth, (float)WIDTH-paddleWidth);
+    if(((!IsKeyDown(KEY_LEFT) && !IsKeyDown(KEY_RIGHT)) || (IsKeyDown(KEY_LEFT) && IsKeyDown(KEY_RIGHT))) && (!leftGesture && !rightGesture))
+    {
+        // If neither key is pressed, gradually decrease speed to 0
+        if (paddleSpeedX > 0)
+        {
+            paddleSpeedX -= paddleDeceleration * GetFrameTime() * paddleDecelerationFactor;
+            if (paddleSpeedX < 0) paddleSpeedX = 0;
+        }
+        else if (paddleSpeedX < 0)
+        {
+            paddleSpeedX += paddleDeceleration * GetFrameTime() * paddleDecelerationFactor;
+            if (paddleSpeedX > 0) paddleSpeedX = 0;
+        }
+    }
+    if(IsKeyReleased(KEY_LEFT) && IsKeyDown(KEY_RIGHT))
+        {
+            if (paddleSpeedX < 0)
+                paddleSpeedX += paddleDeceleration * GetFrameTime() * paddleUTurnDecelerationFactor;
+            else if (paddleSpeedX > 0)
+                paddleSpeedX += paddleAcceleration * GetFrameTime() * paddleAccelerationFactor;
+        }
+        
+    if(IsKeyReleased(KEY_RIGHT) && IsKeyDown(KEY_LEFT))
+    {
+        if (paddleSpeedX > 0)
+            paddleSpeedX -= paddleDeceleration * GetFrameTime() * paddleUTurnDecelerationFactor;
+        else if (paddleSpeedX < 0)
+            paddleSpeedX -= paddleAcceleration * GetFrameTime() * paddleAccelerationFactor;
+    }
+
+    if (paddleSpeedX > paddleSpeedLimit) paddleSpeedX = paddleSpeedLimit;
+    if (paddleSpeedX < -paddleSpeedLimit) paddleSpeedX = -paddleSpeedLimit;
+
+    paddlePosX += paddleSpeedX * GetFrameTime();
+
+    if (paddlePosX < 0)
+    {
+        paddlePosX = 0;
+        paddleSpeedX = 0.0f;
+    }
+
+    if (paddlePosX + paddleWidth > WIDTH)
+    {
+        paddlePosX = WIDTH - paddleWidth;
+        paddleSpeedX = 0.0f;
+    }
+
+    // paddlePosX = Clamp(paddlePosX, 0.0f, paddlePosX+paddleWidth);
+    // paddlePosX = Clamp(paddlePosX, paddlePosX-paddleWidth, (float)WIDTH-paddleWidth);
 }
 
 void Paddle()
@@ -1459,6 +1537,17 @@ void BlurEffect(Font font, const char *text, Vector2 position, float fontSize, f
     }
 }
 
+void BlurEffect(Vector2 startPos, Vector2 endPos, float thick, Color color)
+{
+    for (int yOffset = -2; yOffset <= 2; ++yOffset)
+    {
+        for (int xOffset = -2; xOffset <= 2; ++xOffset)
+        {
+            DrawLineEx({startPos.x + xOffset, startPos.y + yOffset}, {endPos.x + xOffset, endPos.y + yOffset}, thick, Fade(color, 0.1f));
+        }
+    }
+}
+
 bool GameWonAnimation(bool fullAnimNotCompleted)
 {
     static Color color =  {220, 220, 220, 255};
@@ -1580,6 +1669,127 @@ bool GameOverAnimation(bool fullAnimNotCompleted)
 
 //! Animation system functions - ends
 
+
+//! Arrow BUtton And Gesture functions - starts
+
+void ComputeArrowButtonCordinates(ArrowButtonDirection arrowDirection, const int& arrowWidth, const int& arrowHeight, const Vector2& arrowStart, Vector2& lineOneStart, Vector2& lineOneEnd, Vector2& lineTwoStart,
+                                  Vector2& lineTwoEnd)
+{
+    if (arrowDirection == LEFT_ARROW)
+    {
+        lineOneStart.x = arrowStart.x + arrowWidth;
+        lineOneStart.y = arrowStart.y;
+        lineOneEnd.x = arrowStart.x;
+        lineOneEnd.y = arrowStart.y + arrowHeight * 0.5f;
+        lineTwoStart.x = lineOneEnd.x;
+        lineTwoStart.y = lineOneEnd.y;
+        lineTwoEnd.x = arrowStart.x + arrowWidth;
+        lineTwoEnd.y = HEIGHT - 100;
+    }
+    else if(arrowDirection == RIGHT_ARROW)
+    {
+        lineOneStart.x = arrowStart.x;
+        lineOneStart.y = arrowStart.y;
+        lineOneEnd.x = arrowStart.x + arrowWidth;
+        lineOneEnd.y = arrowStart.y + arrowHeight * 0.5f;
+        lineTwoStart.x = lineOneEnd.x;
+        lineTwoStart.y = lineOneEnd.y;
+        lineTwoEnd.x = arrowStart.x;
+        lineTwoEnd.y = HEIGHT - 100;
+    }
+
+}
+
+void DrawArrowButton(const ArrowButtonDirection arrowDirection)
+{
+    static const int arrowWidth = 100;
+    static const int arrowHeight = 100;
+    static Vector2 arrowStart = {0, 0};
+    static Vector2 lineOneStart = {0, 0};
+    static Vector2 lineOneEnd = {0, 0};
+    static Vector2 lineTwoStart = {0, 0};
+    static Vector2 lineTwoEnd = {0, 0};
+    static float lineThickness = 5.0f;
+    static Color arrowColor = RED;
+    
+    if (arrowDirection == LEFT_ARROW)
+    {
+        arrowStart.x = 100;
+        arrowStart.y = HEIGHT - (arrowHeight + 100);
+        ComputeArrowButtonCordinates(LEFT_ARROW, arrowWidth, arrowHeight, arrowStart, lineOneStart, lineOneEnd, lineTwoStart, lineTwoEnd);
+        // DrawRectangle(arrowStart.x, arrowStart.y, 100, 100, WHITE);
+        if(isGameStarted && !isGameEnded)
+        {
+            DrawLineEx(lineOneStart, lineOneEnd, lineThickness, arrowColor);
+            DrawLineEx(lineTwoStart, lineTwoEnd, lineThickness, arrowColor);
+        }
+        else 
+        {
+            BlurEffect(lineOneStart, lineOneEnd, lineThickness, arrowColor);
+            BlurEffect(lineTwoStart, lineTwoEnd, lineThickness, arrowColor);
+
+        }
+    }
+    else if (arrowDirection == RIGHT_ARROW)
+    {
+        arrowStart.x = WIDTH - 200;
+        arrowStart.y = HEIGHT - 200;
+        ComputeArrowButtonCordinates(RIGHT_ARROW, arrowWidth, arrowHeight, arrowStart, lineOneStart, lineOneEnd, lineTwoStart, lineTwoEnd);
+        //    DrawRectangle(arrowXstart, arrowStart.y, 100, 100, WHITE);
+        if(isGameStarted && !isGameEnded)
+        {
+            DrawLineEx(lineOneStart, lineOneEnd, lineThickness, arrowColor);
+            DrawLineEx(lineTwoStart, lineTwoEnd, lineThickness, arrowColor);
+        }
+        else
+        {
+            BlurEffect(lineOneStart, lineOneEnd, lineThickness, arrowColor);
+            BlurEffect(lineTwoStart, lineTwoEnd, lineThickness, arrowColor);            
+        }
+    }
+
+}
+
+
+bool ArrowGesture(ArrowButtonDirection arrowDirection, bool& leftGesture, bool& rightGesture)
+{
+    bool isDetected = false;
+    if(arrowDirection == LEFT_ARROW)
+    {
+        for (int i = 0; i < tCount; ++i)
+        {
+            // Make sure point is not (0, 0) as this means there is no touch for it
+            if ((touchPositions[i].x > 0) && (touchPositions[i].y > 0))
+            {
+                if((touchPositions[i].x > 0 && touchPositions[i].x < WIDTH/2) && (touchPositions[i].y > 0 && touchPositions[i].y < HEIGHT))
+                {
+                    leftGesture = true;
+                    isDetected = true;
+                }
+            }
+        }
+    }
+    else if(arrowDirection == RIGHT_ARROW)
+    {
+        for (int i = 0; i < tCount; ++i)
+        {
+            // Make sure point is not (0, 0) as this means there is no touch for it
+            if ((touchPositions[i].x > 0) && (touchPositions[i].y > 0))
+            {
+                if((touchPositions[i].x > WIDTH/2 && touchPositions[i].x < WIDTH) && (touchPositions[i].y > 0 && touchPositions[i].y < HEIGHT))
+                {
+                    rightGesture = true;
+                    isDetected = true;
+                }
+            }
+        }
+    }
+
+    return isDetected;
+}
+
+//! Arrow BUtton And Gesture functions - ends
+
 // --------------------------------------------------------------------------------------------------------------
 
 //! Game main loop - starts 
@@ -1613,6 +1823,8 @@ void UpdateDrawFrame(void)
             RenderHighScore();
             Ball();
             Paddle();
+            DrawArrowButton(LEFT_ARROW);
+            DrawArrowButton(RIGHT_ARROW);
             MoveParticles();
             DrawTiles();
             DrawParticles();
@@ -1659,6 +1871,8 @@ void UpdateDrawFrame(void)
             RenderHighScore();
             Ball();
             Paddle();
+            DrawArrowButton(LEFT_ARROW);
+            DrawArrowButton(RIGHT_ARROW);
             MoveParticles();
             DrawTiles();
             DrawParticles();
@@ -1705,6 +1919,8 @@ void UpdateDrawFrame(void)
         RenderHighScore();
         Ball();
         Paddle();
+        DrawArrowButton(LEFT_ARROW);
+        DrawArrowButton(RIGHT_ARROW);
         MoveParticles();
         DrawTiles();
         DrawParticles();
@@ -1721,6 +1937,8 @@ void UpdateDrawFrame(void)
         RenderHighScore();
         Ball();
         Paddle();
+        DrawArrowButton(LEFT_ARROW);
+        DrawArrowButton(RIGHT_ARROW);
         MoveParticles();
         DrawTiles();
         DrawParticles();
