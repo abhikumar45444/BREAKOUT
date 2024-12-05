@@ -112,6 +112,8 @@ Music gameMusic;
 
 //! Game Font
 Font font;
+float fontSpacing = 2.0f;
+float fontSize = 50.0f;
 
 //! Particle system
 struct Size
@@ -263,7 +265,7 @@ int main()
     SetMusicVolume(gameMusic, 0.2f);
 
     const char *filename = "../resources/font.ttf";
-    font = LoadFontEx(filename, 50, 0, 250);
+    font = LoadFontEx(filename, 50, 0, 0);
 
     #if defined(PLATFORM_WEB)
         const int FPS = 60;
@@ -977,29 +979,33 @@ void ScreenResized()
 void RenderScore()
 {
     const char *text = "Score: ";
-    // int textWidth =  MeasureText(text, 30);
+    float fontSize = 25.0f;
+    // Vector2 textDimensions =  MeasureTextEx(font, text, fontSize, fontSpacing);
+    Vector2 textPosition = {25.0f, 15.0f};
+    
     if(isGameStarted && !isGameEnded)
     {
-        // DrawText(TextFormat("Score: %i", score), 10, 10, 20, RED);
-        DrawTextEx(font,TextFormat("%s%i", text, score),{20.0f, 10.0f}, 25.0f, 0, RED);
+        DrawTextEx(font,TextFormat("%s%i", text, score),{textPosition.x, textPosition.y}, fontSize, fontSpacing, RED);
         return;
     }
 
-    BlurEffect(font,TextFormat("%s%i", text, score),{20.0f, 10.0f}, 25.0f, 0, RED);
+    BlurEffect(font,TextFormat("%s%i", text, score),{textPosition.x, textPosition.y}, fontSize, fontSpacing, RED);
 }
 
 void RenderHighScore()
 {
     const char *text = "Highscore: ";
-    int textWidth =  MeasureText(text, 30);
+    float fontSize = 25.0f;
+    Vector2 textDimensions =  MeasureTextEx(font, text, fontSize, fontSpacing);
+    Vector2 textPosition = {WIDTH - textDimensions.x - 115.0f, 15.0f};
+
     if(isGameStarted && !isGameEnded)
     {
-        // DrawText(TextFormat("%s%i", text, highscore), WIDTH - textWidth - 60, 10, 20, YELLOW);
-        DrawTextEx(font, TextFormat("%s%i", text, highscore), {(float)(WIDTH - textWidth - 90), 10}, 25, 0, YELLOW);
+        DrawTextEx(font, TextFormat("%s%i", text, highscore), {textPosition.x, textPosition.y}, fontSize, fontSpacing, YELLOW);
         return;
     }
 
-    BlurEffect(font, TextFormat("%s%i", text, highscore), {(float)(WIDTH - textWidth - 90), 10.0f}, 25, 0, YELLOW);
+    BlurEffect(font, TextFormat("%s%i", text, highscore), {textPosition.x, textPosition.y}, fontSize, fontSpacing, YELLOW);
 }
 
 
@@ -1008,32 +1014,31 @@ void GameStartScreen()
     static Color animColor = {220, 220, 220, 255};
     static float startingValue = animColor.a;
     static float endingValue = 160.0f;
+    // static float currentValue = startingValue;
     static float timeToDecrease = 3.0f;
     static float progress = 0.0f;
 
     static Color textColor = {230, 41, 55, 0};
     static float textstartingValue = textColor.a;
     static float textendingValue = 255.0f;
+    // static float textcurrentValue = startingValue;
     static float texttimeToDecrease = 2.0f;
     static float textprogress = 0.0f;
 
-    // static string textStr = "Please < Press Space Key or Swipe Up on Screen > to Start Game";
-    static string textStr = "                 To Start Game\n\n< Press Space Key or Swipe Up on Screen >";
-    static const char *text = textStr.c_str();
-    static int textFontSize = 35;
-    static int textWidth = MeasureText(text, textFontSize);
+    static const char *text = "                 To Start Game\n\n\n< Press Space Key or Swipe Up on Screen >";
+    static float textFontSize = 35.0f;
+    static Vector2 textDimesions = MeasureTextEx(font, text, textFontSize, fontSpacing);
+    static Vector2 textPostion = {WIDTH * 0.5f - textDimesions.x * 0.5f, HEIGHT * 0.5f};
 
-    // static string pausePlayTextStr = "Please < Press Space Key or Swipe Down on Screen > to Pause/Resume";
-    static string pausePlayTextStr = "                 To Pause/Resume\n\n< Press Space Key or Swipe Down on Screen >";
-    static const char *pausePlaytext = pausePlayTextStr.c_str();
-    static int pausePlayTextFontSize = 30;
-    static int pausePlaytextWidth = MeasureText(pausePlaytext, pausePlayTextFontSize);
+    static const char *pausePlaytext = "                 To Pause/Resume\n\n\n< Press Space Key or Swipe Down on Screen >";
+    static float pausePlayTextFontSize = 30.0f;
+    static Vector2 pausePlaytextDimensions = MeasureTextEx(font, pausePlaytext, pausePlayTextFontSize, fontSpacing);
+    static Vector2 pausePlaytextPosition = {WIDTH * 0.5f - pausePlaytextDimensions.x * 0.5f, HEIGHT * 0.70f};
 
-    // static string pausetextStr = "Game Paused < Press Space Key or Swipe Down on Screen > to Resume";
-    static string pausetextStr = "                  Game Paused\n\n< Press Space Key or Swipe Down on Screen >\n\n                   to Resume";
-    static const char *pausetext = pausetextStr.c_str();
-    static int pauseTextFontSize = 33;
-    static int pausetextWidth = MeasureText(pausetext, pauseTextFontSize);
+    static const char *pausetext = "                  Game Paused\n\n\n< Press Space Key or Swipe Down on Screen >\n\n\n                   to Resume";
+    static float pauseTextFontSize = 33.0f;
+    static Vector2 pausetextDimensions = MeasureTextEx(font, pausetext, pauseTextFontSize, fontSpacing);
+    static Vector2 pausetextPosition = {WIDTH * 0.5f - pausetextDimensions.x * 0.5f, HEIGHT * 0.5f};
 
     if(!isAnimationCancelled)
     {
@@ -1044,17 +1049,17 @@ void GameStartScreen()
         else
         {
             DrawRectangle(0, 0, WIDTH, HEIGHT, animColor);
-            // DrawText(TextFormat(text), WIDTH * 0.5f-textWidth * 0.5f, HEIGHT * 0.5f, 40, RED);
+    
             if (gameStartScreenAnimationText && Animation(textstartingValue, textendingValue, textprogress, texttimeToDecrease, gameStartScreenAnimationText, textColor))
             {
-                DrawTextEx(font, TextFormat(text), {WIDTH * 0.5f - textWidth * 0.63f, HEIGHT * 0.5f}, textFontSize, 2.0f, textColor);
-                DrawTextEx(font, TextFormat(pausePlaytext), {WIDTH * 0.5f - pausePlaytextWidth * 0.62f, HEIGHT * 0.65f}, pausePlayTextFontSize, 2.0f, textColor);
+                DrawTextEx(font, TextFormat(text), textPostion, textFontSize, fontSpacing, textColor);
+                DrawTextEx(font, TextFormat(pausePlaytext), pausePlaytextPosition, pausePlayTextFontSize, fontSpacing, textColor);
             }
             else
             {
                 textColor.a = 255;
-                DrawTextEx(font, TextFormat(text), {WIDTH * 0.5f - textWidth * 0.63f, HEIGHT * 0.5f}, textFontSize, 2.0f, textColor);
-                DrawTextEx(font, TextFormat(pausePlaytext), {WIDTH * 0.5f - pausePlaytextWidth * 0.62f, HEIGHT * 0.65f}, pausePlayTextFontSize, 2.0f, textColor);
+                DrawTextEx(font, TextFormat(text), textPostion, textFontSize, fontSpacing, textColor);
+                DrawTextEx(font, TextFormat(pausePlaytext), pausePlaytextPosition, pausePlayTextFontSize, fontSpacing, textColor);
             }
         }
     }
@@ -1063,45 +1068,58 @@ void GameStartScreen()
         animColor.a = 160 /* 200 */;
         DrawRectangle(0, 0, WIDTH, HEIGHT, animColor);
         textColor.a = 255;
-        DrawTextEx(font, TextFormat(pausetext), {WIDTH * 0.5f - pausetextWidth * 0.62f, HEIGHT * 0.5f}, pauseTextFontSize, 2.0f, textColor);  
+        DrawTextEx(font, TextFormat(pausetext), pausetextPosition, pauseTextFontSize, fontSpacing, textColor);  
     }
 }
-
 
 void GameOverScreen()
 {  
     DrawRectangleGradientV(0, 0, WIDTH, HEIGHT, {50, 50, 230, 50}, {200, 122, 255, 255});
+    Color GameOverScreenTextColor = RED;
+
     const char *gameOverText = "Game Over";
-    int gameOverTextWidth =  MeasureText(gameOverText, 40);
-    // DrawText(TextFormat(gameOverText), WIDTH * 0.5f-gameOverTextWidth * 0.5f, HEIGHT * 0.5f - 200, 40, RED);
-    DrawTextEx(font, TextFormat(gameOverText), {WIDTH * 0.5f-gameOverTextWidth * 0.5f, HEIGHT * 0.5f - 200}, 40, 0, RED);
+    float gameOverFontSize = 40.0f;
+    Vector2 gameOverTextDimensions =  MeasureTextEx(font, gameOverText, gameOverFontSize, fontSpacing);
+    Vector2 gameOverTextPosition = {WIDTH * 0.5f - gameOverTextDimensions.x * 0.5f, HEIGHT * 0.5f - 200};
+    DrawTextEx(font, TextFormat(gameOverText), gameOverTextPosition, gameOverFontSize, fontSpacing, GameOverScreenTextColor);
+
     const char *scoreText = "Your Score :";
-    int scoreTextWidth =  MeasureText(scoreText, 40);
-    int scoreWidth = MeasureText(to_string(score).c_str(), 40);
-    // DrawText(TextFormat("%s %d", scoreText, score), WIDTH * 0.5f-scoreTextWidth * 0.5f - scoreWidth * 0.5f, HEIGHT * 0.5f - 100, 40, RED);
-    DrawTextEx(font, TextFormat("%s %d", scoreText, score), {WIDTH * 0.5f-scoreTextWidth * 0.5f - scoreWidth * 0.5f, HEIGHT * 0.5f - 100}, 40, 0, RED);
+    float scoreTextFontSize = 40.0f;
+    Vector2 scoreTextDimensions =  MeasureTextEx(font, scoreText, scoreTextFontSize, fontSpacing);
+    Vector2 scoreDimensions = MeasureTextEx(font, to_string(score).c_str(), scoreTextFontSize, fontSpacing);
+    Vector2 scoreTextPostion = {WIDTH * 0.5f - scoreTextDimensions.x * 0.5f - scoreDimensions.x * 0.5f, HEIGHT * 0.5f - 100};
+    DrawTextEx(font, TextFormat("%s %d", scoreText, score), scoreTextPostion, scoreTextFontSize, fontSpacing, GameOverScreenTextColor);
+
     const char *restartText = "Press < Enter Key or Swipe Up on Screen > to Restart Game";
-    int restartTextWidth =  MeasureText(restartText, 32);
-    // DrawText(TextFormat(restartText), WIDTH * 0.5f-restartTextWidth * 0.5f, HEIGHT * 0.5f, 40, RED);
-    DrawTextEx(font, TextFormat(restartText), {WIDTH * 0.5f-restartTextWidth * 0.57f, HEIGHT * 0.5f}, 32, 0, RED);
+    float restartTextFontSize = 30.0f;
+    Vector2 restartTextDimensions =  MeasureTextEx(font, restartText, restartTextFontSize, fontSpacing);
+    Vector2 restartTextPosition = {WIDTH * 0.5f - restartTextDimensions.x * 0.5f, HEIGHT * 0.5f};
+    DrawTextEx(font, TextFormat(restartText), restartTextPosition, restartTextFontSize, fontSpacing, GameOverScreenTextColor);
 }
 
 void GameWonScreen()
 {  
     DrawRectangleGradientV(0, 0, WIDTH, HEIGHT, {50, 50, 230, 50}, {200, 122, 255, 255});
-    const char *gameOverText = "YOU WIN";
-    int gameOverTextWidth =  MeasureText(gameOverText, 40);
-    // DrawText(TextFormat(gameOverText), WIDTH * 0.5f-gameOverTextWidth * 0.5f, HEIGHT * 0.5f - 200, 40, RED);
-    DrawTextEx(font, TextFormat(gameOverText), {WIDTH * 0.5f-gameOverTextWidth * 0.5f, HEIGHT * 0.5f - 200}, 40, 0, RED);
+    Color gameWonScreenTextColor = RED;
+
+    const char *gameWonText = "YOU WON";
+    float gameWonTextFontsize = 40.0f;
+    Vector2 gameWonTextDimensions =  MeasureTextEx(font, gameWonText, gameWonTextFontsize, fontSpacing);
+    Vector2 gameWonTextPosition = {WIDTH * 0.5f - gameWonTextDimensions.x * 0.5f, HEIGHT * 0.5f - 200};
+    DrawTextEx(font, TextFormat(gameWonText), gameWonTextPosition, gameWonTextFontsize, fontSpacing, RED);
+
     const char *scoreText = "Your Score :";
-    int scoreTextWidth =  MeasureText(scoreText, 40);
-    int scoreWidth = MeasureText(to_string(score).c_str(), 40);
-    // DrawText(TextFormat("%s %d", scoreText, score), WIDTH * 0.5f-scoreTextWidth * 0.5f - scoreWidth * 0.5f, HEIGHT * 0.5f - 100, 40, RED);
-    DrawTextEx(font, TextFormat("%s %d", scoreText, score), {WIDTH * 0.5f-scoreTextWidth * 0.5f - scoreWidth * 0.5f, HEIGHT * 0.5f - 100}, 40, 0, RED);
-    const char *restartText = "Press < Enter key or Swipe Up on Screen > to Restart Game";
-    int restartTextWidth =  MeasureText(restartText, 32);
-    // DrawText(TextFormat(restartText), WIDTH * 0.5f-restartTextWidth * 0.5f, HEIGHT * 0.5f, 40, RED);
-    DrawTextEx(font, TextFormat(restartText), {WIDTH * 0.5f-restartTextWidth * 0.57f, HEIGHT * 0.5f}, 32, 0, RED);
+    float scoreTextFontSize = 40.0f;
+    Vector2 scoreTextDimensions =  MeasureTextEx(font, scoreText, scoreTextFontSize, fontSpacing);
+    Vector2 scoreDimensions = MeasureTextEx(font, to_string(score).c_str(), scoreTextFontSize, fontSpacing);
+    Vector2 scoreTextPostion = {WIDTH * 0.5f - scoreTextDimensions.x * 0.5f - scoreDimensions.x * 0.5f, HEIGHT * 0.5f - 100};
+    DrawTextEx(font, TextFormat("%s %d", scoreText, score), scoreTextPostion, scoreTextFontSize, fontSpacing, gameWonScreenTextColor);
+
+    const char *restartText = "Press < Enter Key or Swipe Up on Screen > to Restart Game";
+    float restartTextFontSize = 30.0f;
+    Vector2 restartTextDimensions =  MeasureTextEx(font, restartText, restartTextFontSize, fontSpacing);
+    Vector2 restartTextPosition = {WIDTH * 0.5f - restartTextDimensions.x * 0.5f, HEIGHT * 0.5f};
+    DrawTextEx(font, TextFormat(restartText), restartTextPosition, restartTextFontSize, fontSpacing, gameWonScreenTextColor);
 }
 
 
@@ -1158,11 +1176,13 @@ void GameReset()
 
 void Lives()
 {
-    int fontSize = 22;
+    float fontSize = 22.0f;
     const char *text = "Lives : ";
-    const int textWidth = MeasureText(text, fontSize);
-    float textPosX = (320 + ballWidth - ((ballWidth * 3) + 15.0f * (3 - 1))) * 0.5f;
-    float textPosY = HEIGHT - 30.0f;
+    const Vector2 textDimensions = MeasureTextEx(font, text, fontSize, fontSpacing);
+    float textPosX = (390 + ballWidth - ((ballWidth * 3) + 15.0f * (3 - 1))) * 0.5f;
+    float textPosY = HEIGHT - 32.0f;
+    Vector2 textPosition = {textPosX - textDimensions.x - 30.0f, textPosY};
+
     if(livesrects.size() > 1)
     {
         textPosX = livesrects[0].pos.x;
@@ -1171,13 +1191,12 @@ void Lives()
     
     if(isGameStarted && !isGameEnded)
     {
-        // DrawText(TextFormat(text), 20, HEIGHT - 30, fontSize, MAROON);
-        DrawTextEx(font, TextFormat(text), {textPosX - textWidth - 30.0f, textPosY}, fontSize, 2.0f, ORANGE);
+        DrawTextEx(font, TextFormat(text), textPosition, fontSize, fontSpacing, ORANGE);
         DrawLiveRects();
         return;
     }
 
-    BlurEffect(font, TextFormat(text), {textPosX - textWidth - 30.0f, textPosY}, fontSize, 2.0f, ORANGE);
+    BlurEffect(font, TextFormat(text), textPosition, fontSize, fontSpacing, ORANGE);
     DrawLiveRects();
 }
 
@@ -1591,7 +1610,9 @@ bool GameWonAnimation(bool fullAnimNotCompleted)
 
     static string textStrGW = "CONGRATULATIONS !! YOU WON ....";
     static const char *textGW = textStrGW.c_str();
-    static int textWidthGW = MeasureText(textGW, 40);
+    float textGWFontSize = 40.0f;
+    static Vector2 textGWDimensions = MeasureTextEx(font, textGW, textGWFontSize, fontSpacing);
+    static Vector2 textGWPosition = {WIDTH * 0.5f - textGWDimensions.x * 0.5f, HEIGHT * 0.5f};
 
     if(gameWonScreenAnimation || isAnimating || gameWonScreenAnimationText || fullAnimNotCompleted)
     {
@@ -1625,13 +1646,13 @@ bool GameWonAnimation(bool fullAnimNotCompleted)
             {
                 if(!IsSoundPlaying(victorySound))
                     PlaySound(victorySound);
-                DrawTextEx(font, TextFormat(textGW), {WIDTH * 0.5f - textWidthGW * 0.5f, HEIGHT * 0.5f}, 40, 0, textColorGW);
+                DrawTextEx(font, TextFormat(textGW), textGWPosition, textGWFontSize, fontSpacing, textColorGW);
                 return true;
             }
             else
             {
                 textColorGW.a = 255;
-                DrawTextEx(font, TextFormat(textGW), {WIDTH * 0.5f - textWidthGW * 0.5f, HEIGHT * 0.5f}, 40, 0, textColorGW);
+                DrawTextEx(font, TextFormat(textGW), textGWPosition, textGWFontSize, fontSpacing, textColorGW);
                 return false;
             }
         }
@@ -1656,7 +1677,9 @@ bool GameOverAnimation(bool fullAnimNotCompleted)
 
     static string textStrGO = "HAHA !! YOU LOSE .. TRY AGAIN ...";
     static const char *textGO = textStrGO.c_str();
-    static int textWidthGO = MeasureText(textGO, 40);
+    float textGOFontSize = 40.0f;
+    static Vector2 textGODimensions = MeasureTextEx(font, textGO, textGOFontSize, fontSpacing);
+    static Vector2 textGOPosition = {WIDTH * 0.5f - textGODimensions.x * 0.5f, HEIGHT * 0.5f};
     
     if(gameOverScreenAnimation || gameOverScreenAnimationText || fullAnimNotCompleted)
     {
@@ -1672,13 +1695,13 @@ bool GameOverAnimation(bool fullAnimNotCompleted)
             {
                 if(!IsSoundPlaying(gameOverSound))
                     PlaySound(gameOverSound);
-                DrawTextEx(font, TextFormat(textGO), {WIDTH * 0.5f - textWidthGO * 0.5f, HEIGHT * 0.5f}, 40, 0, textColorGO);
+                DrawTextEx(font, TextFormat(textGO), textGOPosition, textGOFontSize, fontSpacing, textColorGO);
                 return true;
             }
             else
             {
                 textColorGO.a = 255;
-                DrawTextEx(font, TextFormat(textGO), {WIDTH * 0.5f - textWidthGO * 0.5f, HEIGHT * 0.5f}, 40, 0, textColorGO);
+                DrawTextEx(font, TextFormat(textGO), textGOPosition, textGOFontSize, fontSpacing, textColorGO);
                 return false;
             }
         }
@@ -1824,6 +1847,9 @@ void UpdateDrawFrame(void)
     if(!isGameOver && !isGameWon)
         GameState(); // game has started or paused, toggles game state
 
+    static float currentParticlesTime = 0.0f;
+    static float delayParticlesTime = 0.5f;
+
     if(isGameOver)
     {
         maxParticles = 30;
@@ -1845,7 +1871,8 @@ void UpdateDrawFrame(void)
             Paddle();
             DrawArrowButton(LEFT_ARROW);
             DrawArrowButton(RIGHT_ARROW);
-            MoveParticles();
+            if(!Delay(currentParticlesTime, delayParticlesTime))
+                MoveParticles();
             DrawTiles();
             DrawParticles();
             Lives();
@@ -1861,6 +1888,7 @@ void UpdateDrawFrame(void)
                 int touchStartGameInput = TouchStartGameInput();
                 if (IsKeyPressed(KEY_ENTER) || touchStartGameInput == GESTURE_SWIPE_UP)
                 {
+                    currentParticlesTime = 0.0f; 
                     currentTimeGO = 0.0f;
                     fullAnimNotCompletedGO = true;
                     isGameWon = false;
@@ -1893,7 +1921,8 @@ void UpdateDrawFrame(void)
             Paddle();
             DrawArrowButton(LEFT_ARROW);
             DrawArrowButton(RIGHT_ARROW);
-            MoveParticles();
+            if(!Delay(currentParticlesTime, delayParticlesTime))
+                MoveParticles();
             DrawTiles();
             DrawParticles();
             Lives();
@@ -1913,6 +1942,7 @@ void UpdateDrawFrame(void)
                 int touchStartGameInput = TouchStartGameInput();
                 if (IsKeyPressed(KEY_ENTER) || touchStartGameInput == GESTURE_SWIPE_UP)
                 {
+                    currentParticlesTime = 0.0f; 
                     currentTimeGW = 0.0f;
                     fullAnimNotCompletedGW = true;
                     isGameWon = false;
