@@ -173,6 +173,10 @@ int gesture = GESTURE_NONE;
 
 //! Touch Input - ends
 
+//! Textures - start
+Texture2D background;
+//! Textures - end 
+
 //! Arrow Button - starts
 enum ArrowButtonDirection{
     LEFT_ARROW, RIGHT_ARROW
@@ -248,6 +252,9 @@ int main()
     //* Initialize Sound
     InitAudioDevice();
 
+    //* Load Background image as texture
+    background = LoadTexture("../resources/BreakoutBG.png");
+
     tileBreakSound = LoadSound("../resources/tilebreak.ogg");
     tileHitSound = LoadSound("../resources/tilehit.ogg");
     ballBreakSound = LoadSound("../resources/ballbreak.ogg");
@@ -304,6 +311,7 @@ int main()
 
     //* freeing up resources
     UnloadFont(font);
+    UnloadTexture(background);
     UnloadSound(tileHitSound);
     UnloadSound(ballBreakSound);
     UnloadSound(tileBreakSound);
@@ -435,7 +443,7 @@ void userInput()
     static float paddleDecelerationFactor = 0.5f;
     static float paddleUTurnDecelerationFactor = 10.0f;
 
-    if (IsKeyDown(KEY_LEFT) || (GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) < 0) || (ArrowGesture(LEFT_ARROW, leftGesture, rightGesture)))
+    if (IsKeyDown(KEY_LEFT) || (GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) <= -0.5f) || (ArrowGesture(LEFT_ARROW, leftGesture, rightGesture)))
     {
         paddleSpeedX -= paddleAcceleration * GetFrameTime() * paddleAccelerationFactor;
         isPaddleDirLeft = true;
@@ -446,7 +454,7 @@ void userInput()
         isPaddleDirLeft = false;
     }
 
-    if (IsKeyDown(KEY_RIGHT) || (GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) > 0) || (ArrowGesture(RIGHT_ARROW, leftGesture, rightGesture)))
+    if (IsKeyDown(KEY_RIGHT) || (GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) >= 0.5f) || (ArrowGesture(RIGHT_ARROW, leftGesture, rightGesture)))
     {
         paddleSpeedX += paddleAcceleration * GetFrameTime() * paddleAccelerationFactor;
         isPaddleDirLeft = false;
@@ -457,7 +465,7 @@ void userInput()
         isPaddleDirRight = false;
     }
 
-    if(((!IsKeyDown(KEY_LEFT) && !IsKeyDown(KEY_RIGHT)) || (!GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X)) || (IsKeyDown(KEY_LEFT) && IsKeyDown(KEY_RIGHT))) && (!leftGesture && !rightGesture))
+    if(((!IsKeyDown(KEY_LEFT) && !IsKeyDown(KEY_RIGHT)) || (!((bool)GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X))) || (IsKeyDown(KEY_LEFT) && IsKeyDown(KEY_RIGHT))) && (!leftGesture && !rightGesture))
     {
         // If neither key is pressed, gradually decrease speed to 0
         if (paddleSpeedX > 0)
@@ -981,7 +989,7 @@ void RenderScore()
     const char *text = "Score: ";
     float fontSize = 25.0f;
     // Vector2 textDimensions =  MeasureTextEx(font, text, fontSize, fontSpacing);
-    Vector2 textPosition = {25.0f, 15.0f};
+    Vector2 textPosition = {100.0f, 15.0f};
     
     if(isGameStarted && !isGameEnded)
     {
@@ -1074,7 +1082,7 @@ void GameStartScreen()
 
 void GameOverScreen()
 {  
-    DrawRectangleGradientV(0, 0, WIDTH, HEIGHT, {50, 50, 230, 50}, {200, 122, 255, 255});
+    // DrawRectangleGradientV(0, 0, WIDTH, HEIGHT, {50, 50, 230, 50}, {200, 122, 255, 255});
     Color GameOverScreenTextColor = RED;
 
     const char *gameOverText = "Game Over";
@@ -1099,7 +1107,7 @@ void GameOverScreen()
 
 void GameWonScreen()
 {  
-    DrawRectangleGradientV(0, 0, WIDTH, HEIGHT, {50, 50, 230, 50}, {200, 122, 255, 255});
+    // DrawRectangleGradientV(0, 0, WIDTH, HEIGHT, {50, 50, 230, 50}, {200, 122, 255, 255});
     Color gameWonScreenTextColor = RED;
 
     const char *gameWonText = "YOU WON";
@@ -1208,7 +1216,7 @@ void InitializeLifeRects()
     for (int i = 0; i < 3; i++)
     {
         Vector2 liveRectPos = {posX, posY};
-        LifeRects liveRect = {liveRectPos, BLACK};
+        LifeRects liveRect = {liveRectPos, GOLD};
         livesrects.push_back(liveRect);
         posX += ballWidth + 15.0f;
     }
@@ -1844,6 +1852,8 @@ void UpdateDrawFrame(void)
 
     ClearBackground(backgroundColor);
 
+    DrawTexture(background, 0, 0, WHITE);
+
     if(!isGameOver && !isGameWon)
         GameState(); // game has started or paused, toggles game state
 
@@ -1863,7 +1873,7 @@ void UpdateDrawFrame(void)
 
         if(gameOverScreenAnimation || gameOverScreenAnimationText || fullAnimNotCompletedGO)
         {
-            GameGradientBackground();
+            // GameGradientBackground();
             ScreenResized();
             RenderScore();
             RenderHighScore();
@@ -1913,7 +1923,7 @@ void UpdateDrawFrame(void)
 
         if(gameWonScreenAnimation || gameWonScreenAnimationText || fullAnimNotCompletedGW)
         {
-            GameGradientBackground();
+            // GameGradientBackground();
             ScreenResized();
             RenderScore();
             RenderHighScore();
@@ -1957,7 +1967,7 @@ void UpdateDrawFrame(void)
     if (isGameStarted)
     {
         ResumeMusicStream(gameMusic);
-        GameGradientBackground();
+        // GameGradientBackground();
         IsGameWon();
         ScreenResized();
         userInput();
@@ -1980,7 +1990,7 @@ void UpdateDrawFrame(void)
     else
     {
         PauseMusicStream(gameMusic);
-        GameGradientBackground();
+        // GameGradientBackground();
         ScreenResized();
         BallReset(); //* BallReset() function is calling BallMovement() function
         RenderScore();
