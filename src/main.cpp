@@ -222,6 +222,7 @@ void GenerateParticles(Color tileColor, Vector2 tilePos, bool direction);
 void ParticleCollisionWithTiles();
 bool Animation(float &startingValue, const float &endingValue, float &progress, const float &timeToDecrease, bool &animating, Color &animColor);
 void GameGradientBackground();
+void BlurEffect(Rectangle rect, float roundness, float segments, float thickness, Color color);
 void BlurEffect(float posX, float posY, float width, float height, Color color);
 void BlurEffect(float posX, float posY, float width, float height, Color color1, Color color2, Color color3, Color color4);
 void BlurEffect(Font font, const char *text, Vector2 position, float fontSize, float spacing, Color tint);
@@ -404,7 +405,7 @@ void ResetGameState()
         touchPositions[i].x = 0;
         touchPositions[i].y = 0;
     }
-    
+    paddleSpeedX = 0.0f;
 }
 
 void GameGradientBackground()
@@ -506,7 +507,7 @@ void Paddle()
     if(isGameStarted && !isGameEnded)
     {
         DrawRectangleGradientEx({paddlePosX, paddlePosY, paddleWidth, paddleHeight}, paddleColorFirst, paddleColorSecond, paddleColorThird, paddleColorFourth);
-        return;
+	return;
     }
   
     BlurEffect(paddlePosX, paddlePosY, paddleWidth, paddleHeight, paddleColorFirst, paddleColorSecond, paddleColorThird, paddleColorFourth);
@@ -913,7 +914,7 @@ void DrawTiles()
             {
                 if (tiles[i][j].isAlive)
                 {
-                    DrawRectangle(tiles[i][j].pos.x, tiles[i][j].pos.y, tileWidth, tileHeight, tiles[i][j].color);
+                    DrawRectangle(tiles[i][j].pos.x, tiles[i][j].pos.y, tileWidth, tileHeight, tiles[i][j].color);     
                 }
             }
         }
@@ -1536,6 +1537,19 @@ bool Animation(float &startingValue,const  float &endingValue, float &progress, 
     return true;
 }
 
+void BlurEffect(Rectangle rect, float roundness, float segments, float thickness, Color color)
+{
+    for (int yOffset = -2; yOffset <= 2; ++yOffset)
+    {
+        for (int xOffset = -2; xOffset <= 2; ++xOffset)
+        {
+            // DrawRectangle(posX + xOffset, posY + yOffset, width, height, Fade(color, 0.1f));
+            Rectangle _rect = {rect.x + xOffset, rect.y + yOffset, rect.width, rect.height};
+            DrawRectangleRoundedLines(_rect,roundness,segments,thickness, Fade(color, 0.1f));
+        }
+    }
+}
+
 void BlurEffect(float posX, float posY, float width, float height, Color color)
 {
     for (int yOffset = -2; yOffset <= 2; ++yOffset)
@@ -1543,6 +1557,8 @@ void BlurEffect(float posX, float posY, float width, float height, Color color)
         for (int xOffset = -2; xOffset <= 2; ++xOffset)
         {
             DrawRectangle(posX + xOffset, posY + yOffset, width, height, Fade(color, 0.1f));
+            // Rectangle rect = {posX + xOffset, posY + yOffset, width, height};
+            // DrawRectangleRoundedLines(rect,0.7f,10,2.5f, Fade(color, 0.1f));
         }
     }
 }
@@ -1916,7 +1932,7 @@ void UpdateDrawFrame(void)
             Paddle();
             DrawArrowButton(LEFT_ARROW);
             DrawArrowButton(RIGHT_ARROW);
-            if(!Delay(currentParticlesTime, delayParticlesTime))
+            // if(!Delay(currentParticlesTime, delayParticlesTime))
                 MoveParticles();
             DrawTiles();
             DrawParticles();

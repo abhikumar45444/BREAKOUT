@@ -1931,7 +1931,7 @@ void UpdateDrawFrame(void)
             Paddle();
             DrawArrowButton(LEFT_ARROW);
             DrawArrowButton(RIGHT_ARROW);
-            if(!Delay(currentParticlesTime, delayParticlesTime))
+            // if(!Delay(currentParticlesTime, delayParticlesTime))
                 MoveParticles();
             DrawTiles();
             DrawParticles();
