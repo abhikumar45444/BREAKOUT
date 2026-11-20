@@ -1,255 +1,835 @@
 <!doctype html>
-<html lang=EN-us>
+<html lang="en">
 
 <head>
-    <meta charset=utf-8>
-    <meta content="text/html; charset=utf-8" http-equiv=Content-Type>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Breakout WebGame</title>
-    <meta content="Breakout Game" name=title>
-    <meta content="New raylib web videogame, developed using raylib videogames library" name=description>
-    <meta content="raylib, programming, examples, html5, C, C++, library, learn, games, videogames" name=keywords>
-    <meta content="width=device-width" name=viewport>
-    <meta content=website property=og:type>
-    <meta content="Breakout Game" property=og:title>
-    <meta content=image/png property=og:image:type>
-    <meta content="New raylib web videogame, developed using raylib videogames library" property=og:image:alt>
-    <meta content=https://github.com/abhikumar45444/BREAKOUT/blob/main/Breakout.png property=og:image>
-    <meta content="Breakout Developed in C++ using Raylib" property=og:site_name>
-    <meta content=https://www.raylib.com/games.html property=og:url>
-    <meta content="New raylib web videogame, developed using raylib videogames library" property=og:description>
-    <meta content=summary_large_image name=twitter:card>
-    <meta content=@raysan5 name=twitter:site>
-    <meta content="Breakout Web Game" name=twitter:title>
-    <meta content=https://www.raylib.com/common/raylib_logo.png name=twitter:image>
-    <meta content="New raylib web videogame, developed using raylib videogames library" name=twitter:image:alt>
-    <meta content=https://www.raylib.com/games.html name=twitter:url>
-    <meta content="New raylib web videogame, developed using raylib videogames library" name=twitter:description>
-    <!-- <link href=https://www.raylib.com/favicon.ico rel="shortcut icon"> -->
+    <meta name="title" content="Breakout Game">
+    <meta name="description" content="New raylib web videogame, developed using raylib videogames library">
+    <meta name="keywords" content="raylib, programming, examples, html5, C, C++, library, learn, games, videogames">
+    
+    <!-- Mobile & Responsive Meta Tags -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#090b10">
+
+    <!-- Open Graph & Twitter Cards -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Breakout Game">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:alt" content="New raylib web videogame, developed using raylib videogames library">
+    <meta property="og:image" content="https://github.com/abhikumar45444/BREAKOUT/blob/main/Breakout.png">
+    <meta property="og:site_name" content="Breakout Developed in C++ using Raylib">
+    <meta property="og:url" content="https://abhikumar45444.github.io/BREAKOUT/">
+    <meta property="og:description" content="New raylib web videogame, developed using raylib videogames library">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@raysan5">
+    <meta name="twitter:title" content="Breakout Web Game">
+    <meta name="twitter:image" content="https://www.raylib.com/common/raylib_logo.png">
+    <meta name="twitter:image:alt" content="New raylib web videogame, developed using raylib videogames library">
+    <meta name="twitter:url" content="https://abhikumar45444.github.io/BREAKOUT/">
+    <meta name="twitter:description" content="New raylib web videogame, developed using raylib videogames library">
+
+    <!-- Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Press+Start+2P&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Press+Start+2P&display=swap" rel="stylesheet">
     <link rel="apple-touch-icon" sizes="180x180" href="./resources/icons/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="./resources/icons/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="./resources/icons/favicon-16x16.png">
     <link rel="manifest" href="./resources/icons/site.webmanifest">
+
     <style>
-        body {
-            font-family: arial;
-            margin: 0;
-            padding: none;
-            background-color: #888888;
+        :root {
+            --bg-color: #090b10;
+            --header-height: 52px;
+            --footer-height: 38px;
+            --accent-red: #ff3355;
+            --accent-yellow: #facc15;
+            --accent-green: #22c55e;
+            --accent-blue: #38bdf8;
+            --surface-bg: rgba(18, 22, 34, 0.88);
+            --surface-border: rgba(255, 255, 255, 0.1);
         }
 
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(ellipse at 50% 0%, rgba(56, 189, 248, 0.08) 0%, transparent 60%),
+                radial-gradient(circle at 50% 50%, #111625 0%, #090b10 100%);
+            color: #f1f5f9;
+            font-family: 'Montserrat', system-ui, -apple-system, sans-serif;
+            display: flex;
+            flex-direction: column;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* ---------------- Header Bar ---------------- */
         #header {
             width: 100%;
-            height: 60px;
-            background-color: #888
+            height: var(--header-height);
+            min-height: var(--header-height);
+            background: var(--surface-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--surface-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
+            z-index: 50;
         }
 
-        #logo {
-            width: 64px;
-            height: 64px;
-            float: left;
-            position: relative;
-            margin: 10px;
-            background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAadEVYdFNvZnR3YXJlAFBhaW50Lk5FVCB2My41LjExR/NCNwAAA7JJREFUaEPtk0FyWzEMQ+37X7fZhxX4YY3AD1OKF1nkzTRlSBCCLeVBnvl/AUdaELOunPno1kts1kixdtEZKVs+xIxebBkZsVknn/L5nFGDLR8T4zVC9fX19S/+tTFijrYK4jUjbPUtqBHpnEE6PkZD7jQZV8n5Recw1XQKciZuPaEtR6UjNs5ENVGMsBVqpPtER0ZMOhpyp8m4YL4OjD9yxsyZxnQycfMJETNSzsRE1+dihK3YMiJmpHTW3xpmXPC6BXlCHfqnBlsjY5hxf/6EVEOM2BTEi0fYCX4ONSI6Kq3Blg/prIOMq2CsRur4KQ0x64SdjOufEDEdHZGOhmz5RDHCVqhRuQ86YsVskbc+GXchLiHnFyYH+UigQDVGnImbT8hwFkgLg2qiM8JO6Ylx1FNLa3DmYwqCTsZd4BPqGJG7MwKzpeiWKTKxXkLMVE3MSOmsdwxLH6Rd/wCCLSNDx6djeKfJuArGeoYamRHpaEjnCBYZVy8hZqo2GI36qPjsiOiMsBXGcev4Mx9TLGTchbgEjN/uz6jGrBvDjg+LTNx8Qp2CbG2xMKgmOiPslJ4Yxx+eSnSkzlosZNwFPiHl7FRTkLNRJm4+IeVM0ymIH42wE/wcKalQI4MRl4EW3p6VcRWMua8F6WjIlqZDxvVPiHQ6CjVbYkV9ohhhp/Rk1wiYgpyJ78i4CsZbjkb8Qx+ihvzu3RPaKogZkY6GlEeMsKdPSOFIC8VoOusg44L5c+T8ouOoGhWbdWJ8tMi4egkxo4hoh2yNTGf3iIyr5Lyic4bRENXo+lvDjAt4C1Hk/OKtUaAj0+n4dMSZ2D+hrYJsaYh2SClG2jV9kJKKzhlGQ1SsW299Mq6C8dYZHTExo8fzieI5ivipYnYy7nwJqGKmOYyRwfiUBXITfh5qSHRGWEkfqJqURgvsdHyWYv7Ko8DnYYegk3EB00cxprdrJRzFd7YQzawu8L1GMTYS/KpPaAFTkIn1EmJmspJSs5xBzSyGhlkBmlxfNFiP5mw4wlbMh4F5Ddxp5jNINBdCEz9zPOC1zD7Q0HBdmXndwv0TMtydEdzlWJT4VZ8Qt9Qn4/onxMIwa5ZYGJU5yufBiCjwE50AGjLCVuS8Yt4H7OgZLKK5EKOsLviEWJSL/+0uMi7gLUSBseYwqEbXvSHCec1CJvZPyHCmYQffaBBfOTCGHM2aEbZi1+gO1XTWVXMnzrhAn5DSOZVsiQlHnSITKzGj6DeTcZWc/3oy7h9//PF4PL4BlvsWrb6RE+oAAAAASUVORK5CYII=')
-        }
-
-        .emscripten {
-            padding-right: 0;
-            
-            margin-left: auto;
-            margin-right: auto;
-            display: block;
-            width: fit-content;
-        }
-
-        div.emscripten {
-            text-align: center
-        }
-
-        div.emscripten_border {
-
-        }
-
-        canvas.emscripten {
-            border: 0 none;
-            background: #000;
-
-        }
-
-        .spinner {
-            height: 30px;
-            width: 30px;
-            margin: 0;
-            margin-top: 20px;
-            margin-left: 20px;
-            display: inline-block;
-            vertical-align: top;
-            -webkit-animation: rotation .8s linear infinite;
-            -moz-animation: rotation .8s linear infinite;
-            -o-animation: rotation .8s linear infinite;
-            animation: rotation .8s linear infinite;
-            border-left: 5px solid #000;
-            border-right: 5px solid #000;
-            border-bottom: 5px solid #000;
-            border-top: 5px solid red;
-            border-radius: 100%;
-            background-color: #f5f5f5
-        }
-
-        @-webkit-keyframes rotation {
-            from {
-                -webkit-transform: rotate(0)
-            }
-            to {
-                -webkit-transform: rotate(360deg)
-            }
-        }
-
-        @-moz-keyframes rotation {
-            from {
-                -moz-transform: rotate(0)
-            }
-            to {
-                -moz-transform: rotate(360deg)
-            }
-        }
-
-        @-o-keyframes rotation {
-            from {
-                -o-transform: rotate(0)
-            }
-            to {
-                -o-transform: rotate(360deg)
-            }
-        }
-
-        @keyframes rotation {
-            from {
-                transform: rotate(0)
-            }
-            to {
-                transform: rotate(360deg)
-            }
-        }
-
-        #status {
-            display: inline-block;
-            vertical-align: top;
-            margin-top: 30px;
-            margin-left: 20px;
-            font-weight: 700;
-            color: #282828;
-            display: none;
-        }
-
-        #progress {
-            height: 0;
-            width: 0
-        }
-
-        #controls {
-            display: inline-block;
-            float: right;
-            vertical-align: top;
-            margin-top: 15px;
-            margin-right: 20px
-        }
-
-        #output {
-            width: 100%;
-            height: 140px;
-            margin: 0 auto;
-            margin-top: 10px;
-            display: block;
-            background-color: #000;
-            color: #25ae26;
-            font-family: 'Lucida Console', Monaco, monospace;
-            outline: 0
-        }
-
-        input[type=button] {
-            background-color: #d3d3d3;
-            border: 4px solid #a9a9a9;
-            color: #000;
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
             text-decoration: none;
+        }
+
+        .brick-icon {
+            display: flex;
+            gap: 2.5px;
+            align-items: center;
+        }
+
+        .brick-segment {
+            width: 7px;
+            height: 15px;
+            border-radius: 2px;
+        }
+        .brick-segment.red { background-color: var(--accent-red); box-shadow: 0 0 6px var(--accent-red); }
+        .brick-segment.yellow { background-color: var(--accent-yellow); box-shadow: 0 0 6px var(--accent-yellow); }
+        .brick-segment.green { background-color: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); }
+        .brick-segment.blue { background-color: var(--accent-blue); box-shadow: 0 0 6px var(--accent-blue); }
+
+        .game-title {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 13px;
+            letter-spacing: 1px;
+            color: #ffffff;
+            text-shadow: 0 0 10px rgba(255, 51, 85, 0.4);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Header Buttons */
+        .btn-ui {
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 8px;
+            color: #e2e8f0;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            font-family: 'Montserrat', sans-serif;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
             cursor: pointer;
-            width: 140px;
-            height: 30px;
-            margin-left: 10px
+            transition: all 0.2s ease;
+            white-space: nowrap;
         }
 
-        input[type=button]:hover {
-            background-color: #f5f5f5ff;
-            border-color: #000
+        .btn-ui:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+            color: #ffffff;
+            transform: translateY(-1px);
         }
 
-        #audiotext {
-            font-family: "Montserrat, sans-serif";
+        .btn-ui:active {
+            transform: translateY(0);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .btn-ui.active-glow {
+            border-color: var(--accent-green);
+            color: #4ade80;
+            box-shadow: 0 0 10px rgba(74, 222, 128, 0.2);
+        }
+
+        .btn-ui.muted-state {
+            border-color: rgba(239, 68, 68, 0.4);
+            color: #f87171;
+        }
+
+        /* ---------------- Main Game Scaler Area ---------------- */
+        #game-area {
+            flex: 1 1 auto;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        /* The flex scaler container that measures available viewport space */
+        .game-scaler {
+            position: relative;
+            flex: 1 1 auto;
+            width: 100%;
+            height: 100%;
+            min-height: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Fixed 1200x650 virtual container that scales cleanly via CSS transform */
+        .canvas-container {
+            position: absolute;
+            width: 1200px;
+            height: 650px;
+            min-width: 1200px;
+            min-height: 650px;
+            background: #000000;
+            border-radius: 12px;
+            box-shadow: 0 14px 45px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.1), 0 0 35px rgba(56, 189, 248, 0.15);
+            overflow: hidden;
+            transform-origin: center center;
+            display: block;
+        }
+
+        /* Canvas stays at its exact 1200x650 native resolution without clipping */
+        canvas.emscripten {
+            width: 1200px !important;
+            height: 650px !important;
+            display: block;
+            border: 0 none;
+            background-color: #000000;
+            outline: none;
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        /* ---------------- Loading Overlay ---------------- */
+        #loading-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(9, 11, 16, 0.96);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            z-index: 40;
+            transition: opacity 0.4s ease, visibility 0.4s ease;
+        }
+
+        #loading-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .loading-logo {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 24px;
+            color: #ffffff;
+            letter-spacing: 2px;
+            text-shadow: 0 0 18px rgba(255, 51, 85, 0.6);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top-color: var(--accent-red);
+            border-right-color: var(--accent-yellow);
+            border-bottom-color: var(--accent-green);
+            animation: spin 0.9s cubic-bezier(0.6, 0.2, 0.4, 0.8) infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-status-text {
+            font-size: 14px;
             font-weight: 500;
-            font-style: italic;
-            font-weight: bold;
-            font-size: larger;
+            color: #94a3b8;
+            font-family: 'Montserrat', sans-serif;
             text-align: center;
-            display: inline-block;
-            padding-top: 1rem;
-            color: rgb(56, 12, 29);
+            max-width: 80%;
+            letter-spacing: 0.3px;
+        }
+
+        .progress-bar-container {
+            width: 260px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 999px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent-red), var(--accent-yellow), var(--accent-green));
+            border-radius: 999px;
+            transition: width 0.2s ease;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+        }
+
+        /* ---------------- Mobile Virtual Controls ---------------- */
+        #mobile-controls {
+            display: none;
+            width: 100%;
+            max-width: 600px;
+            padding: 4px 14px 6px;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            z-index: 30;
+            touch-action: manipulation;
+        }
+
+        .touch-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            color: #ffffff;
+            border-radius: 10px;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+            transition: background 0.1s, transform 0.1s;
+        }
+
+        .touch-btn:active, .touch-btn.pressed {
+            background: rgba(56, 189, 248, 0.35);
+            border-color: var(--accent-blue);
+            transform: scale(0.96);
+            box-shadow: 0 0 14px rgba(56, 189, 248, 0.4);
+        }
+
+        .touch-arrow {
+            flex: 1;
+            height: 44px;
+        }
+
+        .touch-action {
+            height: 44px;
+            padding: 0 12px;
+            font-size: 9px;
+            background: rgba(255, 51, 85, 0.15);
+            border-color: rgba(255, 51, 85, 0.35);
+        }
+
+        .touch-action:active, .touch-action.pressed {
+            background: rgba(255, 51, 85, 0.4);
+            border-color: var(--accent-red);
+        }
+
+        /* ---------------- Footer Bar ---------------- */
+        #footer {
+            width: 100%;
+            height: var(--footer-height);
+            min-height: var(--footer-height);
+            background: rgba(13, 17, 27, 0.7);
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: #94a3b8;
+            padding: 0 16px;
+            z-index: 20;
+        }
+
+        .key-hint {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin: 0 8px;
+        }
+
+        kbd {
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-family: inherit;
+            font-size: 10px;
+            font-weight: 700;
+            color: #ffffff;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+        }
+
+        .desktop-hints {
+            display: flex;
+            align-items: center;
+        }
+
+        .mobile-hints {
+            display: none;
+            align-items: center;
+            text-align: center;
+        }
+
+        /* ---------------- Orientation Banner (Mobile) ---------------- */
+        #orientation-hint {
+            display: none;
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.94);
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 10px rgba(56, 189, 248, 0.2);
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #38bdf8;
+            z-index: 60;
+            align-items: center;
+            gap: 8px;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            pointer-events: auto;
+        }
+
+        .close-hint {
+            cursor: pointer;
+            font-size: 14px;
+            color: #94a3b8;
+            margin-left: 4px;
+        }
+
+        /* ---------------- Controls Modal ---------------- */
+        #modal-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        #modal-backdrop.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #111522;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            padding: 24px;
+            width: 100%;
+            max-width: 440px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9), 0 0 30px rgba(56, 189, 248, 0.15);
+            animation: popIn 0.25s ease-out;
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.92); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .modal-title {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 13px;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 20px;
+            cursor: pointer;
+            line-height: 1;
+            padding: 4px;
+        }
+        .modal-close:hover { color: #ffffff; }
+
+        .control-section {
+            margin-bottom: 16px;
+        }
+
+        .control-section-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent-blue);
+            margin-bottom: 8px;
+        }
+
+        .control-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 7px 0;
+            font-size: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .control-row:last-child {
+            border-bottom: none;
+        }
+
+        .control-label {
+            color: #cbd5e1;
+        }
+
+        /* ---------------- Fullscreen Mode ---------------- */
+        :fullscreen #header, :-webkit-full-screen #header {
+            display: none !important;
+        }
+        :fullscreen #footer, :-webkit-full-screen #footer {
+            display: none !important;
+        }
+        :fullscreen #orientation-hint, :-webkit-full-screen #orientation-hint {
+            display: none !important;
+        }
+        :fullscreen #mobile-controls, :-webkit-full-screen #mobile-controls {
+            display: none !important;
+        }
+
+        /* ---------------- Responsive Media Queries ---------------- */
+        @media (max-width: 768px) {
+            :root {
+                --header-height: 46px;
+                --footer-height: 32px;
+            }
+
+            .game-title {
+                font-size: 11px;
+            }
+
+            .btn-ui {
+                padding: 5px 9px;
+                font-size: 11px;
+            }
+
+            .btn-text {
+                display: none;
+            }
+
+            .desktop-hints {
+                display: none;
+            }
+
+            .mobile-hints {
+                display: flex;
+            }
+
+            #mobile-controls {
+                display: flex;
+            }
+        }
+
+        /* Portrait Mode on Mobile */
+        @media (max-width: 768px) and (orientation: portrait) {
+            #orientation-hint {
+                display: flex;
+            }
+        }
+
+        /* Landscape Mode on Mobile */
+        @media (max-height: 500px) and (orientation: landscape) {
+            :root {
+                --header-height: 38px;
+                --footer-height: 0px;
+            }
+
+            #footer {
+                display: none;
+            }
+
+            #mobile-controls {
+                display: none;
+            }
+
+            #orientation-hint {
+                display: none;
+            }
         }
     </style>
 </head>
 
 <body>
-    <div id=header>
-        <div class=spinner id=spinner></div>
-        <div class=emscripten id=status>Downloading...</div><span id=controls><span><input onclick=Module.requestFullscreen(!1,!1) type=button value="🖵 FULLSCREEN"></span>
-        <span><input type=button value="🔇 MUTE" id="btn-audio" class="audio-start-button"></span></span>
-        <div class=emscripten><progress hidden id=progress max=100 value=0></progress>
-            <span id="audiotext">To enable audio start the game first then click on Resume button</span>
+    <!-- Top Navigation Bar -->
+    <header id="header">
+        <a class="header-brand" href="#">
+            <div class="brick-icon">
+                <span class="brick-segment red"></span>
+                <span class="brick-segment yellow"></span>
+                <span class="brick-segment green"></span>
+                <span class="brick-segment blue"></span>
+            </div>
+            <span class="game-title">BREAKOUT</span>
+        </a>
+
+        <div class="header-actions">
+            <button class="btn-ui muted-state" id="btn-audio" title="Toggle Game Audio">
+                <span id="audio-icon">🔇</span>
+                <span class="btn-text" id="audio-label">SOUND</span>
+            </button>
+
+            <button class="btn-ui" id="btn-fullscreen" title="Toggle Fullscreen">
+                <span id="fs-icon">⛶</span>
+                <span class="btn-text" id="fs-label">FULLSCREEN</span>
+            </button>
+
+            <button class="btn-ui" id="btn-controls" title="How to play">
+                <span>🎮</span>
+                <span class="btn-text">CONTROLS</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Game Area -->
+    <main id="game-area">
+        <!-- Floating Orientation Suggestion for Portrait Mobile -->
+        <div id="orientation-hint">
+            <span>🔄 Rotate for fullscreen view</span>
+            <span class="close-hint" id="close-hint-btn">✕</span>
+        </div>
+
+        <!-- Dynamic Scaler Viewport -->
+        <div class="game-scaler" id="game-scaler">
+            <div class="canvas-container" id="canvas-container">
+                <!-- Loading & Assets Progress Overlay -->
+                <div id="loading-overlay">
+                    <div class="loading-logo">
+                        <span>BREAKOUT</span>
+                    </div>
+                    <div class="loading-spinner" id="spinner"></div>
+                    <div class="loading-status-text" id="status">Loading Breakout...</div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill" id="progress"></div>
+                    </div>
+                </div>
+
+                <!-- Raylib WASM Game Canvas -->
+                <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+            </div>
+        </div>
+
+        <!-- Virtual Touch Controls for Mobile Devices -->
+        <div id="mobile-controls">
+            <button class="touch-btn touch-arrow" id="touch-left" aria-label="Move Left">◀ LEFT</button>
+            <button class="touch-btn touch-action" id="touch-start-pause" aria-label="Start or Pause">START / ⏸</button>
+            <button class="touch-btn touch-arrow" id="touch-right" aria-label="Move Right">RIGHT ▶</button>
+        </div>
+    </main>
+
+    <!-- Bottom Controls & Hints Bar -->
+    <footer id="footer">
+        <div class="desktop-hints">
+            <span class="key-hint"><kbd>←</kbd> <kbd>→</kbd> Move Paddle</span>
+            <span>•</span>
+            <span class="key-hint"><kbd>SPACE</kbd> Play / Pause</span>
+            <span>•</span>
+            <span class="key-hint"><kbd>ENTER</kbd> Restart</span>
+        </div>
+        <div class="mobile-hints">
+            <span>👈 Tap sides to move</span>
+            <span style="margin: 0 6px;">•</span>
+            <span>👆 Swipe Up to start</span>
+            <span style="margin: 0 6px;">•</span>
+            <span>👇 Swipe Down to pause</span>
+        </div>
+    </footer>
+
+    <!-- Controls & How-to-Play Modal -->
+    <div id="modal-backdrop">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <span>🕹️ HOW TO PLAY</span>
+                </div>
+                <button class="modal-close" id="modal-close-btn" aria-label="Close">✕</button>
+            </div>
+
+            <div class="control-section">
+                <div class="control-section-title">🖥️ Desktop Controls</div>
+                <div class="control-row">
+                    <span class="control-label">Move Paddle</span>
+                    <span><kbd>←</kbd> <kbd>→</kbd> or <kbd>A</kbd> <kbd>D</kbd></span>
+                </div>
+                <div class="control-row">
+                    <span class="control-label">Pause / Resume</span>
+                    <span><kbd>SPACE</kbd></span>
+                </div>
+                <div class="control-row">
+                    <span class="control-label">Restart Game</span>
+                    <span><kbd>ENTER</kbd></span>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <div class="control-section-title">📱 Mobile / Touch Controls</div>
+                <div class="control-row">
+                    <span class="control-label">Move Paddle</span>
+                    <span style="color: #94a3b8;">Tap left/right screen half or on-screen buttons</span>
+                </div>
+                <div class="control-row">
+                    <span class="control-label">Start / Restart</span>
+                    <span style="color: #94a3b8;">Swipe <b>UP</b> or press START</span>
+                </div>
+                <div class="control-row">
+                    <span class="control-label">Pause Game</span>
+                    <span style="color: #94a3b8;">Swipe <b>DOWN</b> or press ⏸</span>
+                </div>
+            </div>
+
+            <div style="margin-top: 18px; text-align: center;">
+                <button class="btn-ui" id="modal-ok-btn" style="width: 100%; padding: 8px;">GOT IT!</button>
+            </div>
         </div>
     </div>
-    <div class=emscripten_border><canvas class=emscripten id=canvas oncontextmenu=event.preventDefault() tabindex=-1></canvas></div>
-    <script src=https://cdn.jsdelivr.net/gh/eligrey/FileSaver.js/dist/FileSaver.min.js></script>
+
+    <!-- Hidden textarea for Emscripten output if needed -->
+    <textarea id="output" style="display: none;"></textarea>
+
+    <!-- Original Emscripten FileSaver Script -->
+    <script src="https://cdn.jsdelivr.net/gh/eligrey/FileSaver.js/dist/FileSaver.min.js"></script>
     <script>
         function saveFileFromMEMFSToDisk(e, a) {
             var i, o = FS.readFile(e);
             i = new Blob([o.buffer], {
                 type: "application/octet-binary"
-            }), saveAs(i, a)
+            }), saveAs(i, a);
         }
     </script>
 
-    <script type='text/javascript'>
+    <!-- Responsive Fit Screen System -->
+    <script type="text/javascript">
+        const GAME_WIDTH = 1200;
+        const GAME_HEIGHT = 650;
+
+        function fitGame() {
+            var scaler = document.querySelector('#game-scaler');
+            var container = document.querySelector('#canvas-container');
+            if (!scaler || !container) return;
+
+            var availWidth = scaler.clientWidth;
+            var availHeight = scaler.clientHeight;
+
+            if (availWidth <= 0 || availHeight <= 0) return;
+
+            // Compute uniform scale factor to fit within available space with padding
+            var padX = 16;
+            var padY = 16;
+            var scale = Math.min((availWidth - padX) / GAME_WIDTH, (availHeight - padY) / GAME_HEIGHT);
+
+            if (scale <= 0) scale = 0.1;
+
+            container.style.transform = 'scale(' + scale + ')';
+            container.style.transformOrigin = 'center center';
+        }
+
+        window.addEventListener('resize', fitGame);
+        window.addEventListener('orientationchange', function() {
+            setTimeout(fitGame, 150);
+        });
+        document.addEventListener('DOMContentLoaded', fitGame);
+        setTimeout(fitGame, 100);
+        setTimeout(fitGame, 500);
+    </script>
+
+    <!-- Module Setup & Loading Handler -->
+    <script type="text/javascript">
         var statusElement = document.querySelector('#status');
         var progressElement = document.querySelector('#progress');
         var spinnerElement = document.querySelector('#spinner');
+        var loadingOverlay = document.querySelector('#loading-overlay');
+
         var Module = {
             preRun: [],
-            postRun: [],
+            postRun: [
+                function() {
+                    fitGame();
+                    setTimeout(function() {
+                        if (loadingOverlay) loadingOverlay.classList.add('hidden');
+                        fitGame();
+                    }, 500);
+                }
+            ],
             print: (function() {
                 var element = document.querySelector('#output');
-
-                if (element) element.value = '';    // Clear browser cache
-
+                if (element) element.value = '';
                 return function(text) {
                     if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
                     console.log(text);
-
                     if (element) {
                         element.value += text + "\n";
-                        element.scrollTop = element.scrollHeight; // focus on bottom
+                        element.scrollTop = element.scrollHeight;
                     }
                 };
             })(),
             printErr: function(text) {
                 if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
-
                 console.error(text);
             },
             canvas: (function() {
                 var canvas = document.querySelector('#canvas');
-                canvas.addEventListener("webglcontextlost", function(e) { alert('WebGL context lost. You will need to reload the page.'); e.preventDefault(); }, false);
-
+                canvas.addEventListener("webglcontextlost", function(e) {
+                    alert('WebGL context lost. You will need to reload the page.');
+                    e.preventDefault();
+                }, false);
                 return canvas;
             })(),
             setStatus: function(text) {
@@ -259,73 +839,286 @@
                 var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
                 var now = Date.now();
 
-                if (m && now - Module.setStatus.last.time < 30) return; // If this is a progress update, skip it if too soon
+                if (m && now - Module.setStatus.last.time < 30) return;
 
                 Module.setStatus.last.time = now;
                 Module.setStatus.last.text = text;
 
                 if (m) {
-                    text = m[1];
-                    progressElement.value = parseInt(m[2])*100;
-                    progressElement.max = parseInt(m[4])*100;
-                    progressElement.hidden = true;
-                    spinnerElement.hidden = false;
+                    var current = parseFloat(m[2]);
+                    var total = parseFloat(m[4]);
+                    var pct = Math.min(100, Math.round((current / total) * 100));
+                    if (progressElement) progressElement.style.width = pct + '%';
+                    if (statusElement) statusElement.innerText = 'Downloading assets... (' + pct + '%)';
                 } else {
-                    progressElement.value = null;
-                    progressElement.max = null;
-                    progressElement.hidden = true;
-                    if (!text) spinnerElement.style.display = 'none';
+                    if (statusElement) statusElement.innerText = text || 'Ready!';
+                    if (!text) {
+                        if (progressElement) progressElement.style.width = '100%';
+                        setTimeout(function() {
+                            if (loadingOverlay) loadingOverlay.classList.add('hidden');
+                            fitGame();
+                        }, 400);
+                    }
                 }
-
-                statusElement.innerHTML = text;
             },
             totalDependencies: 0,
             monitorRunDependencies: function(left) {
                 this.totalDependencies = Math.max(this.totalDependencies, left);
-                Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies-left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
-            },
-            //noInitialRun: true
+                Module.setStatus(left ? 'Preparing assets (' + (this.totalDependencies - left) + '/' + this.totalDependencies + ')...' : 'All downloads complete.');
+            }
         };
 
         Module.setStatus('Downloading...');
 
-        window.onerror = function() {
+        window.onerror = function(event) {
             Module.setStatus('Exception thrown, see JavaScript console');
-            spinnerElement.style.display = 'none';
-            Module.setStatus = function(text) { if (text) Module.printErr('[post-exception status] ' + text); };
+            if (spinnerElement) spinnerElement.style.display = 'none';
+            Module.setStatus = function(text) {
+                if (text) Module.printErr('[post-exception status] ' + text);
+            };
         };
     </script>
 
-    <script type='text/javascript'>
+    <!-- Audio Autoplay & Unlock Controller -->
+    <script type="text/javascript">
         var audioBtn = document.querySelector('#btn-audio');
-
-        // An array of all contexts to resume on the page
+        var audioIcon = document.querySelector('#audio-icon');
+        var audioLabel = document.querySelector('#audio-label');
         const audioContexList = [];
+        var isAudioUnlocked = false;
+
+        // Proxy AudioContext creation
         (function() {
-            // A proxy object to intercept AudioContexts and
-            // add them to the array for tracking and resuming later
-            self.AudioContext = new Proxy(self.AudioContext, {
-                construct(target, args) {
-                    const result = new target(...args);
-                    audioContexList.push(result);
-                    if (result.state == "suspended") audioBtn.value = "🔈 RESUME";
-                    return result;
-                }
-            });
+            var OrigAudioContext = window.AudioContext || window.webkitAudioContext;
+            if (OrigAudioContext) {
+                self.AudioContext = new Proxy(OrigAudioContext, {
+                    construct(target, args) {
+                        const result = new target(...args);
+                        audioContexList.push(result);
+                        result.onstatechange = updateAudioButtonUI;
+                        updateAudioButtonUI();
+                        return result;
+                    }
+                });
+            }
         })();
 
-        function toggleAudio() {
-            var resumed = false;
-            audioContexList.forEach(ctx => {
-                if (ctx.state == "suspended") { ctx.resume(); resumed = true; }
-                else if (ctx.state == "running") ctx.suspend();
-            });
-
-            if (resumed) audioBtn.value = "🔇 MUTE";
-            else audioBtn.value = "🔈 RESUME";
+        function updateAudioButtonUI() {
+            var anyRunning = audioContexList.some(function(ctx) { return ctx.state === "running"; });
+            if (anyRunning) {
+                audioBtn.classList.remove('muted-state');
+                audioBtn.classList.add('active-glow');
+                if (audioIcon) audioIcon.textContent = "🔊";
+                if (audioLabel) audioLabel.textContent = "SOUND";
+            } else {
+                audioBtn.classList.remove('active-glow');
+                audioBtn.classList.add('muted-state');
+                if (audioIcon) audioIcon.textContent = "🔇";
+                if (audioLabel) audioLabel.textContent = "MUTED";
+            }
         }
-        document.querySelector('.audio-start-button').addEventListener('click', toggleAudio);
+
+        function unlockAudio() {
+            if (isAudioUnlocked) return;
+            var resumedAny = false;
+            audioContexList.forEach(function(ctx) {
+                if (ctx.state === "suspended") {
+                    ctx.resume().then(function() {
+                        updateAudioButtonUI();
+                    });
+                    resumedAny = true;
+                }
+            });
+            if (resumedAny) {
+                isAudioUnlocked = true;
+            }
+        }
+
+        // Auto-unlock audio on any first user interaction (standard web practice)
+        ['click', 'touchstart', 'keydown'].forEach(function(evt) {
+            window.addEventListener(evt, function() {
+                unlockAudio();
+            }, { passive: true });
+        });
+
+        function toggleAudio() {
+            var hasRunning = audioContexList.some(function(ctx) { return ctx.state === "running"; });
+            if (hasRunning) {
+                audioContexList.forEach(function(ctx) {
+                    if (ctx.state === "running") ctx.suspend();
+                });
+            } else {
+                audioContexList.forEach(function(ctx) {
+                    if (ctx.state === "suspended") ctx.resume();
+                });
+            }
+            updateAudioButtonUI();
+        }
+
+        if (audioBtn) {
+            audioBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                toggleAudio();
+            });
+        }
     </script>
+
+    <!-- Fullscreen Controller -->
+    <script type="text/javascript">
+        var fsBtn = document.querySelector('#btn-fullscreen');
+        var fsIcon = document.querySelector('#fs-icon');
+        var fsLabel = document.querySelector('#fs-label');
+        var gameScaler = document.querySelector('#game-scaler');
+
+        function isFullscreen() {
+            return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+        }
+
+        function updateFullscreenUI() {
+            if (isFullscreen()) {
+                if (fsIcon) fsIcon.textContent = "✕";
+                if (fsLabel) fsLabel.textContent = "EXIT";
+            } else {
+                if (fsIcon) fsIcon.textContent = "⛶";
+                if (fsLabel) fsLabel.textContent = "FULLSCREEN";
+            }
+            fitGame();
+            setTimeout(fitGame, 100);
+        }
+
+        function toggleFullscreen() {
+            if (!isFullscreen()) {
+                var target = document.documentElement;
+                if (target.requestFullscreen) {
+                    target.requestFullscreen().catch(function(err) {
+                        if (Module.requestFullscreen) Module.requestFullscreen(false, false);
+                    });
+                } else if (target.webkitRequestFullscreen) {
+                    target.webkitRequestFullscreen();
+                } else if (Module.requestFullscreen) {
+                    Module.requestFullscreen(false, false);
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
+            }
+            setTimeout(updateFullscreenUI, 150);
+        }
+
+        if (fsBtn) {
+            fsBtn.addEventListener('click', toggleFullscreen);
+        }
+
+        document.addEventListener('fullscreenchange', updateFullscreenUI);
+        document.addEventListener('webkitfullscreenchange', updateFullscreenUI);
+    </script>
+
+    <!-- Virtual Touch Controls & Modal Logic -->
+    <script type="text/javascript">
+        // Helper to simulate keyboard events for Raylib GLFW
+        function dispatchKey(keyCode, keyName, type) {
+            var evt = new KeyboardEvent(type, {
+                key: keyName,
+                code: keyName,
+                keyCode: keyCode,
+                which: keyCode,
+                bubbles: true,
+                cancelable: true
+            });
+            window.dispatchEvent(evt);
+        }
+
+        function setupButtonHold(btn, keyCode, keyName) {
+            if (!btn) return;
+            var isDown = false;
+
+            function press(e) {
+                if (e) e.preventDefault();
+                if (!isDown) {
+                    isDown = true;
+                    btn.classList.add('pressed');
+                    dispatchKey(keyCode, keyName, 'keydown');
+                }
+            }
+
+            function release(e) {
+                if (e) e.preventDefault();
+                if (isDown) {
+                    isDown = false;
+                    btn.classList.remove('pressed');
+                    dispatchKey(keyCode, keyName, 'keyup');
+                }
+            }
+
+            btn.addEventListener('touchstart', press, { passive: false });
+            btn.addEventListener('touchend', release, { passive: false });
+            btn.addEventListener('touchcancel', release, { passive: false });
+            btn.addEventListener('mousedown', press);
+            btn.addEventListener('mouseup', release);
+            btn.addEventListener('mouseleave', release);
+        }
+
+        // Left / Right touch buttons (ArrowLeft: 37, ArrowRight: 39)
+        setupButtonHold(document.querySelector('#touch-left'), 37, 'ArrowLeft');
+        setupButtonHold(document.querySelector('#touch-right'), 39, 'ArrowRight');
+
+        // Space / Start button (Space: 32)
+        var startPauseBtn = document.querySelector('#touch-start-pause');
+        if (startPauseBtn) {
+            startPauseBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                dispatchKey(32, 'Space', 'keydown');
+                setTimeout(function() {
+                    dispatchKey(32, 'Space', 'keyup');
+                }, 80);
+            });
+        }
+
+        // Modal Logic
+        var modalBackdrop = document.querySelector('#modal-backdrop');
+        var controlsBtn = document.querySelector('#btn-controls');
+        var modalCloseBtn = document.querySelector('#modal-close-btn');
+        var modalOkBtn = document.querySelector('#modal-ok-btn');
+
+        function openModal() {
+            if (modalBackdrop) modalBackdrop.classList.add('show');
+        }
+
+        function closeModal() {
+            if (modalBackdrop) modalBackdrop.classList.remove('show');
+        }
+
+        if (controlsBtn) controlsBtn.addEventListener('click', openModal);
+        if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeModal);
+        if (modalOkBtn) modalOkBtn.addEventListener('click', closeModal);
+        if (modalBackdrop) {
+            modalBackdrop.addEventListener('click', function(e) {
+                if (e.target === modalBackdrop) closeModal();
+            });
+        }
+
+        // Orientation Hint dismiss
+        var orientationHint = document.querySelector('#orientation-hint');
+        var closeHintBtn = document.querySelector('#close-hint-btn');
+        if (closeHintBtn && orientationHint) {
+            closeHintBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                orientationHint.style.display = 'none';
+            });
+        }
+
+        // Prevent unwanted gesture bounce on iOS/Safari
+        document.body.addEventListener('touchmove', function(e) {
+            if (e.target.closest('#game-area')) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+    </script>
+
+    <!-- Load Raylib WASM Entry Script -->
     <script src="./wasm/index.js" async></script>
 </body>
 
